@@ -112,9 +112,9 @@
 
 - From the root of the `minions-visitorship` repo, run:
 
-  ```bash
-  pip install -r requirements.txt
-  ```
+    ```bash
+    pip install -r requirements.txt
+    ```
 
 <br>
 
@@ -232,7 +232,7 @@ Go **one at a time**, in order (Participant 2, then 3, then 4). Wait for the pre
 - Run `git pull --no-rebase`
     - Git stops with `CONFLICT (content): Merge conflict in session2_lab/activity2.py`
 
-    > **Why `--no-rebase`?** You and the remote both have new commits that the other does not have (your branches have *diverged*). Git needs you to choose how to combine them, so a plain `git pull` stops with `fatal: Need to specify how to reconcile divergent branches`.
+    > **Why `--no-rebase`?** You and the remote both have new commits that the other does not have (your branches have _diverged_). Git needs you to choose how to combine them, so a plain `git pull` stops with `fatal: Need to specify how to reconcile divergent branches`.
     >
     > - `--no-rebase` (merge): combines your commit and the remote's with a new **merge commit**. The history shows where the work split and joined back together
     > - `--rebase`: sets your commit aside, applies the remote's commits, then replays your commit on top. The history stays a straight line, with no merge commit
@@ -357,14 +357,32 @@ To illustrate how your personal API keys may be misused:
 
 > Running the program has generated logs on all API calls made. The specific user who made the calls can be traced via the API key used. Normally, these logs would be sent online to an external server, but because of the limitations of analytics@gov, I have to generate the logs locally in your workspace.
 >
-> To consolidate all the logs together into the remote repo, you must `git push` them. Everyone can then `git pull` to access everyone's logs.
+> To demonstrate why API keys must never be committed, this activity deliberately commits `api_testing.py` as well as the API call logs. Use only the simulated workshop keys provided by the facilitator, never a real key.
 
-- First, run `git restore api_testing.py` to remove your changes to just that one file, to prevent merge conflicts later
-- Now run `git add .` to stage all the API call logs in `session2_lab/logs`
-- Run `git commit -m "Session2 Activity3 API call logs"` to commit the changes
-- Run `git push` to push the changes to the remote `s2` branch
-    - If your push is rejected because someone pushed before you, run `git pull --no-rebase`, then `git push` again
-- Once everyone has done the above, run `git pull` to pull everyone's changes to your local repo.
+- Everyone: run `git pull` so that you all start from the same commit.
+- Everyone: stage and commit your own `api_testing.py` and API call logs:
+    - `git add api_testing.py logs`
+    - `git commit -m "Session2 Activity3 participant <N> API key"`
+- Participant 1: run `git push`.
+- Participants 2, 3 and 4: go one at a time, waiting for the previous participant to finish:
+    - Run `git pull --rebase`.
+    - Git will report a conflict in `api_testing.py`. Edit the file so that it contains your own key, then remove all conflict markers.
+    - Run `git add api_testing.py`, then `git rebase --continue`.
+    - Run `git push` after the rebase finishes.
+- Everyone: run `git log --oneline -- api_testing.py` to see the four participant commits in a linear history. In this command:
+  - `git log` shows the commit history.
+  - `--oneline` displays each commit on one compact line.
+  - `--` marks the end of Git options. Everything after it is treated as a file or folder path, not as another option or commit name.
+  - `api_testing.py` limits the history to commits that changed this file.
+- Run `git log -p -- api_testing.py` to see that the keys remain in earlier commits even after the latest file is cleaned up. Here, `-p` shows the line-by-line changes introduced by each commit:
+
+  ```text
+  git log    -p    --    api_testing.py
+  command  option  separator  file path
+             `--` separates options from the file path
+  ```
+
+  The `--` is important because it tells Git clearly that `api_testing.py` is a path. Without it, Git may try to interpret a name as a commit, branch, or other revision before treating it as a file.
 - In the left pane, right-click `session2_lab/api_dashboard.html` and click `Show Preview`
 
 > ### Learning Points: Why API Keys Must Be Secured
@@ -389,6 +407,20 @@ To illustrate how your personal API keys may be misused:
 >
 >     ```bash
 >     git pull
+>     ```
+>
+> - Open `session2_lab/api_testing.py` and replace the committed simulated key with `API_KEY = ""`. This removes the key from the latest version, but not from the earlier commits where participants committed it.
+> - Commit and push this cleanup:
+>
+>     ```bash
+>     git add session2_lab/api_testing.py
+>     git commit -m "chore: remove API key from latest source"
+>     git push
+>     ```
+>
+> - Then remove the generated logs:
+>
+>     ```bash
 >     git rm -r session2_lab/logs
 >     git commit -m "chore: reset API call logs"
 >     ```
