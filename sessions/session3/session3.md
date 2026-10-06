@@ -213,9 +213,9 @@
 - Run `git branch -r` to view remote branches. Note that even on the remote, you dont see anyone else's in-progress branches. This is because nobody has pushed their branches to remote yet.
 
 #### b. Switch to your local branch
-- Run `git switch practice-p1` 
+- Run `git switch practice-p<N>` 
   - You should see `Switched to branch 'practice-p1'`
-- Run `git status` and `git branch` to confirm you are now on `practice-p1`
+- Run `git status` and `git branch` to confirm you are now on `practice-p<N>`
 
 #### c. Make a commit on your branch
 - Create any new file in the `session3_lab/` folder, e.g. `session3_lab/p<N>_notes.md` and type anything in it
@@ -231,32 +231,32 @@
 - Run `git switch main`, then `ls session3_lab` again
   - `p<N>_notes.md` has **disappeared** from your folder (and from the left sidebar)
   - Run `git log --oneline` to see the change to commit history
-- Run `git switch p<N>-practice`, then `ls session3_lab`
+- Run `git switch practice-p<N>`, then `ls session3_lab`
   - Your new file and commit is back
 
 
 <hr>
 
-<span style="color:salmon">Switching branches changes the files in your working directory to match the latest commit on that branch.</span> Your notes file was never deleted. It only exists on the `p<N>-practice` branch, so it only appears when you are on that branch.
+<span style="color:salmon">Switching branches changes the files in your working directory to match the latest commit on that branch.</span> Your notes file was never deleted. It only exists on the `practice-p<N>` branch, so it only appears when you are on that branch.
 
 #### e. Create and switch in one step
 - `git switch -c <branch>` creates a new branch **and** switches to it, so you don't need `git branch` then `git switch`
-- While still on `p<N>-practice`, run:
+- While still on `practice-p<N>`, run:
     ```
-    git switch -c p<N>-oops
+    git switch -c oops-p<N>
     ```
-  - You should see `Switched to a new branch 'p1-oops'`
+  - You should see `Switched to a new branch 'oops-p1'`
 
 #### f. Important to note: where did your new branch start from?
 - Run `ls session3_lab`
-  - `p<N>_notes.md` is here, even though you created `p<N>-oops` from scratch
-  - This is because `git switch -c <branch>` creates the new branch from your **current** branch. You were on `p<N>-practice`, so `p<N>-oops` started with everything on it, including your notes commit
+  - `p<N>_notes.md` is here, even though you created `oops-p<N>` from scratch
+  - This is because `git switch -c <branch>` creates the new branch from your **current** branch. You were on `practice-p<N>`, so `oops-p<N>` started with everything on it, including your notes commit
 - Now create a branch from `main` instead, without switching to `main` first:
     ```
-    git switch -c p<N>-clean main
+    git switch -c clean-p<N> main
     ```
 - Run `ls session3_lab`
-  - `p<N>_notes.md` is not here. `p<N>-clean` started from `main`
+  - `p<N>_notes.md` is not here. `clean-p<N>` started from `main`
 - Run `git log --oneline --graph --all` to see where each of your branches points
 
 <hr>
@@ -480,26 +480,26 @@ As the error says, you have 2 options:
 > ⚠️ Keep your `feature/p<N>-update` branch. We will use it in Session 5.
 
 #### a. You cannot delete the branch you are on
-- Run `git switch p<N>-oops`, then `git branch -d p<N>-oops`
-  - Git refuses with an error like `error: cannot delete branch 'p1-oops' used by worktree at '...'` (the exact wording depends on your Git version)
+- Run `git switch oops-p<N>`, then `git branch -d oops-p<N>`
+  - Git refuses with an error like `error: cannot delete branch 'oops-p1' used by worktree at '...'` (the exact wording depends on your Git version)
 - Switch away first: `git switch main`
 
 #### b. Delete a branch safely with `-d`
-- Run `git branch -d p<N>-clean`
-  - You should see `Deleted branch p1-clean (was ...)`
-  - `p<N>-clean` had no commits of its own, so nothing is lost
-- Run `git branch -d p<N>-practice`
+- Run `git branch -d clean-p<N>`
+  - You should see `Deleted branch clean-p1 (was ...)`
+  - `clean-p<N>` had no commits of its own, so nothing is lost
+- Run `git branch -d practice-p<N>`
   - You should see:
     ```
-    error: the branch 'p1-practice' is not fully merged
-    hint: If you are sure you want to delete it, run 'git branch -D p1-practice'
+    error: the branch 'practice-p1' is not fully merged
+    hint: If you are sure you want to delete it, run 'git branch -D practice-p1'
     ```
-  - `p<N>-practice` has a commit (your notes file) that is not on any other branch. `-d` refuses to delete it, to stop you losing work by accident
+  - `practice-p<N>` has a commit (your notes file) that is not on any other branch. `-d` refuses to delete it, to stop you losing work by accident
 
 #### c. Force delete with `-D`
 - If you are sure you no longer need the work on a branch, force delete it:
     ```
-    git branch -D p<N>-practice p<N>-oops
+    git branch -D practice-p<N> oops-p<N>
     ```
   - You can delete several branches at once
   - ⚠️ The commits that were only on those branches are now almost impossible to get back
@@ -507,18 +507,18 @@ As the error says, you have 2 options:
 #### d. Delete a branch on the remote
 - Create a throwaway branch and push it:
     ```
-    git switch -c p<N>-temp main
-    git push -u origin p<N>-temp
+    git switch -c temp-p<N> main
+    git push -u origin temp-p<N>
     git switch main
     ```
-- Check that `p<N>-temp` is on GitLab (`Code` → `Branches`)
+- Check that `temp-p<N>` is on GitLab (`Code` → `Branches`)
 - Delete it on the remote:
     ```
-    git push origin -d p<N>-temp
+    git push origin -d temp-p<N>
     ```
-  - You should see ` - [deleted]         p1-temp`
+  - You should see ` - [deleted]         temp-p1`
   - Refresh GitLab. The branch is gone
-- The **local** `p<N>-temp` still exists. Delete it with `git branch -d p<N>-temp`
+- The **local** `temp-p<N>` still exists. Delete it with `git branch -d temp-p<N>`
 
 <hr>
 
