@@ -102,6 +102,8 @@
 ## Setup
 
 - Navigate into the `minions-visitorship` repo you cloned in Session 2: `cd ~/minions-visitorship`
+- Run `git status` to check that your working tree is clean
+    - If you have uncommitted changes left over from Session 2, discard them with `git restore .`. Otherwise, the next step may fail
 - Run `git switch main` to switch to the `main` branch
 - Run `git pull` to get the latest version of `main`
 - Run `ls session3_lab` to check that the session 3 files are there. You should see `features.py` and `scratch.md`
@@ -122,17 +124,19 @@
     ```
 - Run `git branch`
   - `main` is marked with `*`, as it is your current branch
-  - `s2` is also listed, as you switched to it in Session 2
+  - `s2` is also listed, as you switched to it in Session 2. You may also see `hyperparameter-tuning`, if you switched to it in Session 2, Activity 7
 
 #### b. Local vs remote branches
 - Run `git branch -r`
   - You should see:
     ```
       origin/HEAD -> origin/main
+      origin/facilitator/s3-announcement
       origin/main
       origin/s2
     ```
   - Branches starting with `origin/` refer to the remote versions of the branches on GitLab (`origin`)
+  - `facilitator/s3-announcement` is a branch I prepared for Activity 5
 - Run `git branch -a`
   - Lists both. Remote branches are shown as `remotes/origin/...`
 
@@ -140,7 +144,7 @@
 
 > 
 > - A **local branch** (e.g. `main`) is the branch you work on locally, on your machine
-> - A **remote branch** (e.g. `origin/main`) is Git's record of the state of that branch was on GitLab, the last time you ran `git fetch` or `git pull`
+> - A **remote branch** (e.g. `origin/main`) is Git's record of the state of that branch on GitLab, as of the last time you ran `git fetch` or `git pull`
 > - You never work on remote branches directly. You `git pull` to bring their changes into your local branch, and `git push` to send yours to them
 
 <br>
@@ -210,7 +214,7 @@
     ```
   - The branch has been created, but you are still on `main` (`*`). `git branch <branch>` only creates the branch, it does not switch to it
 - Note that everyone only sees their locally created branch, and not anyone else's
-- Run `git branch -r` to view remote branches. Note that even on the remote, you dont see anyone else's in-progress branches. This is because nobody has pushed their branches to remote yet.
+- Run `git branch -r` to view remote branches. Note that even on the remote, you don't see anyone else's in-progress branches (apart from `facilitator/s3-announcement`). This is because nobody has pushed their branches to remote yet.
 
 #### b. Switch to your local branch
 - Run `git switch practice-p<N>` 
@@ -335,8 +339,8 @@ git push -u origin feature/p<N>-update
 #### a. See that `main` has moved on
 - Run `git fetch`
 - Run `git log --oneline --graph --all`
-  - `origin/main` now has a new commit that your feature branch does not have
-  - Your branch and `main` have **diverged**: each has a commit the other does not
+  - `origin/main` now has new commits that your feature branch does not have: the announcement commit, and the merge commit GitLab created when the merge request was merged
+  - Your branch and `main` have **diverged**: each has commits the other does not
 
 #### b. Merge the latest `main` into your feature branch
 ```
@@ -367,7 +371,7 @@ git switch feature/p<N>-update
 
 <span style="color:salmon">Before continuing work on a feature branch, always run `git pull origin main` to make sure you pull any new commits your teammates merged into `main`.</span>
 
-- `origin main` will ensure you pull the unique commits `main` has that your current branch doesnt yet have. Otherwise, `git pull` pulls from the remote equivalent of your current local branch.
+- `origin main` will ensure you pull the unique commits `main` has that your current branch doesn't yet have. Otherwise, `git pull` pulls from the remote equivalent of your current local branch.
 - If you get a merge conflict, resolve it exactly as in Session 2, Activity 2
 - This is the only kind of merge you should do yourself. **Never** merge your branch into `main` with `git merge`. Instead, open a merge request on GitLab, so only reviewed code is merged into `main` (Session 5)
 
