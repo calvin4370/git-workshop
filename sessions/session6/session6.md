@@ -1,4 +1,4 @@
-# Session 6: Team Workflow Standards
+# Session 6: Team Workflow Standards and MLOps
 
 
 <br>
