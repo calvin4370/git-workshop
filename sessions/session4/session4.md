@@ -105,6 +105,22 @@
 
 <br>
 
+## Setup
+#### a. Navigate into the `minions_visitorship` directory
+- Run `cd minions_visitorship`
+
+#### b. Switch to the `main` branch and pull the latest changes to the workshop
+- Run `git switch main`
+- Run `git pull`
+- Run `git branch -r` to show remote branches only
+  - Note that the `s4` branch has been created and push to remote for this session
+- Run `git branch` to show local branches only
+  - You would not yet have a local version of the `s4` branch until you first use `git switch s4` to get Git to create a local version of it. Otherwise, it will not show up in `git branch`
+
+#### c. Switch to the `s4` branch
+- Git knows that the branch named `s4` only exists in remote and automatically creates a local copy of it for you before switching you to it
+
+<br>
 
 ## Activity 1: Viewing the State of the Repo at a Particular Commit
 
@@ -119,9 +135,31 @@
 git checkout <hash>
 ```
 
-- This moves HEAD to that commit and updates your working directory to that snapshot. This is useful for quickly inspecting an old version of your project. 
+- This moves HEAD to that commit and updates your working directory to state of the repo as of that commit. This is useful for quickly inspecting and running an old version of your project. 
 - You land in a **detached HEAD** state (where HEAD points at a commit instead of a branch, so any new commits you make here aren't on any branch). 
-- To leave and go back, run `git switch -`
+
+#### c. What you can do in a detached HEAD state
+- Try running `git status` and `git branch`
+  - They will confirm that you are in a detached HEAD state
+- Run `git log`
+  - The latest commit shown is the current commit you are checking out rather than the actual HEAD of the branch
+- Make changes to your code / Run your code and produce output
+  - This may created new untracked output files or modify tracked files as per normal.
+  - You should stash any changes or `git restore .` to clear them before exiting the detached HEAD state
+- You can stage and commit changes
+  - However, these changes will be committed in a detached HEAD and not to any branch (I would advise against doing this, as it's much simply to just commit to a branch)
+  - You will not be able to push or pull changes from a detached HEAD state
+
+> Note: If you run an old version of your project expecting to reproduce old results, they may not match what the code produced back then:
+>
+> - **Only tracked files go back in time.** New files that were never staged before and gitignored files (e.g. `*.csv` input data), stay as they are today. This means old code will run on **today's** data
+> - **Package versions don't go back in time either.** The old code runs with the packages currently installed. If a package has changed since, the old code may break or behave differently. The old commit's `requirements.txt` tells you which versions it expects
+
+#### d. Leave the detached HEAD state
+- Run `git switch -` to leave the detached HEAD state
+- Run `git status` to confirm you are back in thee `s4` branch
+- Run `git log --oneline`
+  - HEAD should now point at the actual latest commit for this branch
 
 
 <br>
@@ -177,3 +215,13 @@ Note: In this activity, we explored 2 ways to revert the last commit, but retain
 
 
 ## Activity 5: Discard uncommited changes in your working directory
+
+
+## Activity 6: Git Rebase
+> - In session 2, we went through `git pull --rebase` and `git pull --no-rebase`
+> - Both combine your local commits with new commits from the remote, when the two have diverged:
+>     - `--no-rebase` (**merge**): joins the two lines of work with a new **merge commit**. The history shows where the work split and joined back together
+>     - `--rebase`: sets your commits aside, moves your branch up to the latest remote commit, then **replays** your commits on top, one by one. The history stays a straight line, with no merge commit, but this <span style="color:salmon">rewrites commit history (which is dangerous if others have pulled the original history)</span>
+> - `git rebase <branch>` does the same replaying on its own, without pulling. 
+>   - For example, on a feature branch, `git rebase main` replays your feature branch's commits on top of the latest `main`. It is an alternative to `git merge main` for bringing your branch up to date
+>   - Only rebase commits you have **NOT** pushed to remote yet. Never rebase a branch your teammates are also working on, or their history will no longer match GitLab's (a git mess!)
