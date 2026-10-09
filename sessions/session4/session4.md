@@ -166,6 +166,49 @@
 
 <br>
 
+## Activity 2: Discarding Uncommitted Changes
+
+#### a. Create a new branch for practicing undoing changes
+- Run `git switch -c undo-p<N>`, where `<N>` is your participant number
+
+#### b. Make changes
+- Open `session4_lab/config.py` and change any of the variables
+- Open `session4_lab/pipeline.py`, make any destructive change to the script e.g. modifying a line, introducing syntax errors, clearing the whole file
+- Run `git status`. Both files should be shown as `modified`
+
+
+#### c. Discard your uncommitted changes
+- Discard the change to `config.py` only:
+    ```
+    git restore session4_lab/config.py
+    ```
+- Run `git status`. Only `pipeline.py` is still modified
+
+- Run:
+    ```
+    git restore .
+    ```
+- Run `git status`. You should see `nothing to commit, working tree clean`
+
+> ⚠️ <span style="color:salmon">`git restore` permanently discards your changes. There is no undo or dry-run (`-n`) for this command</span>
+
+#### c. Unstage a change
+- Change `YEAR` in `config.py` again, and stage it with `git add session4_lab/config.py`
+- Unstage it:
+    ```
+    git restore --staged session4_lab/config.py
+    ```
+- Run `git status`. `config.py` is back under `Changes not staged for commit`. Your change is still there, it is just no longer staged
+- Discard it with `git restore session4_lab/config.py`
+
+#### d. Untracked files are not affected
+- Create a new file `session4_lab/untracked_p<N>.md` and type anything in it
+- Run `git restore .`, then `git status`
+  - `untracked_p<N>.md` is still there, under `Untracked files`
+  - `git restore` only works on files Git is tracking. Git has never saved a version of this file, so there is nothing to restore it to
+- Delete the file
+
+
 
 ## Activity 2: Discarding all commits after a particular commit
 
