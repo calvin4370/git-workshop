@@ -208,36 +208,133 @@
   - `git restore` only works on files Git is tracking. Git has never saved a version of this file, so there is nothing to restore it to
 - Delete the file
 
+## Activity 3: Undoing Your Last Commit, but Keeping the Changes
 
+> Repo: `minions-visitorship`
+> Branch: `undo-p<N>`
+>
+> You committed too early, or committed the wrong files, and you have **NOT pushed yet**. You want to undo the commit, but keep the work you did.
 
-## Activity 2: Discarding all commits after a particular commit
+#### a. Make a commit to undo
+- Open `session4_lab/notes.md`, add a line, e.g. `- Participant <N> was here`, and save
+- Stage and commit it:
+    ```
+    git add session4_lab/notes.md
+    git commit -m "docs(notes): add p<N> line"
+    ```
+- Run `git log --oneline -n 2`. Your commit is at the top
 
-
-<br>
-
-
-## Activity 3: Reverting ONE commit
-
-#### a. Open the list of commits
-
-
-#### b. Revert the commit `"TODO"`
-
-```python
-git revert <hash>
+#### b. Undo it, keeping the changes staged
 ```
+git reset --soft HEAD~1
+```
+- `HEAD~1` means "1 commit before where I am now". `reset` moves your branch back to that commit
+  - `--soft` only undoes the commit. Your changes stay in the staging area, ready to be committed again
 
-- This creates a new commit that cancels out the changes made in the original commit
-- Use the flag `--no-edit` to skip the commit-message editor
+- Run `git log --oneline -n 1`. Your commit is gone, and `docs(notes): update notes` is at the top again
+- Run `git status`. Your change to `notes.md` is still there, **staged**, under `Changes to be committed`
 
 
-#### c. Revert the revert
+#### c. Commit it again, then undo it, keeping the changes unstaged
+- Commit it again: `git commit -m "docs(notes): add p<N> line"`
+- This time, run:
+    ```
+    git reset --mixed HEAD~1
+    ```
+    - `--mixed` undoes the commit **and** unstages the changes. It is the default, so `git reset HEAD~1` does the same thing
+
+  - You should see:
+    ```
+    Unstaged changes after reset:
+    M	session4_lab/notes.md
+    ```
+- Run `git status`. Your change is still there, but now **unstaged**, under `Changes not staged for commit`
+
+- Discard the change with `git restore session4_lab/notes.md`
+
+<hr>
+
+| Command | The commit | Your changes |
+| --- | --- | --- |
+| `git reset --soft HEAD~1` | Undone | Kept, **staged** |
+| `git reset --mixed HEAD~1` | Undone | Kept, **unstaged** |
+
+- To undo more than one commit, change the number, e.g. `git reset --soft HEAD~3` undoes your *last 3 commits*
+- If you only want to fix the **message** of your last commit, `git commit --amend -m "corrected message"` is simpler (Session 1)
 
 
 <br>
 
 
-## Activity 4: Reverting the last commit without deleting your changes
+## Activity 4: Discarding ALL commits AFTER a particular commit
+> Repo: `minions-visitorship`
+> Branch: `undo-p<N>`
+>
+> Your last few commits went down the wrong path, and you want to throw them away completely, as if they never happened.
+> This activity goes through how to reset the state of your branch back to the state of a previous commit, whilst deleting all commits that come after it, from the commit history.
+
+#### a. Go back to an earlier commit, and discard everything after it
+- Run `git log --oneline` and copy the hash of a commit you want to restore the branch to
+- Run:
+    ```
+    git reset --hard <hash>
+    ```
+  - You should see `HEAD is now at <hash> <that commit's message`
+- Run `git log --oneline`. All the commits after the chosen commit are gone, and the chosne commit is now the HEAD
+- Run `git status`. `working tree clean`: unlike `--soft` and `--mixed`, `--hard` does **not** keep your changes in the working directory
+
+<hr>
+
+<span style="color:salmon">`git reset --hard` is a destructive command. It throws away the commits after `<hash>`, **and** any uncommitted changes in your working directory.</span>
+
+- Uncommitted changes thrown away by `--hard` cannot be restored
+- Only use it on commits you have **NOT** pushed, as deleting pushed commits rewrites commit history that your teammates may have already pulled!
+
+
+
+<br>
+
+
+## Activity 5: The Safety Net: `git reflog`
+
+> Repo: `minions-visitorship`
+> Branch: `undo-p<N>`
+>
+> You just threw away 3 commits with `git reset --hard`. What if you didn't mean to?
+>
+> Git keeps a log of everywhere `HEAD` has been on your machine, called the **reflog**. Commits you "threw away" are not deleted straight away, so you can use the reflog to find them and get them back.
+
+#### a. Look at the reflog
+```
+git reflog
+```
+- You should see something like:
+    ```
+    48d6268 (HEAD -> undo-p1) HEAD@{0}: reset: moving to 48d6268
+    ba97285 HEAD@{1}: reset: moving to HEAD~1
+    ...
+    ```
+  - `HEAD@{0}` is where you are now: just after the `reset --hard`
+  - `HEAD@{1}` is where you were **just before** it: `ba97285`, the `docs(notes): update notes` commit
+
+#### b. Get your commits back
+```
+git reset --hard HEAD@{1}
+```
+- Run `git log --oneline`. All commits are back
+
+<hr>
+
+- The reflog only exists on **your** machine, and only for actions you did. It is not pushed to GitLab
+- It can also recover branches you deleted with `git branch -D` (Session 3, Activity 7): find the last commit of that branch in the reflog, then run `git switch -c <branch> <hash>`
+- It cannot recover **uncommitted** changes, as they were never saved in a commit
+
+
+
+<br>
+
+
+## Activity 6: Reverting the last commit without deleting your changes
 
 #### a. Make a minor change to `"TODO"`
 
@@ -259,10 +356,14 @@ Note: In this activity, we explored 2 ways to revert the last commit, but retain
 <br>
 
 
-## Activity 5: Discard uncommited changes in your working directory
+## Activity 7: Discard uncommited changes in your working directory
 
 
-## Activity 6: Git Rebase
+
+<br>
+
+
+## Activity 8: Git Rebase
 > - In session 2, we went through `git pull --rebase` and `git pull --no-rebase`
 > - Both combine your local commits with new commits from the remote, when the two have diverged:
 >     - `--no-rebase` (**merge**): joins the two lines of work with a new **merge commit**. The history shows where the work split and joined back together
