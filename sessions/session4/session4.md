@@ -334,30 +334,177 @@ git reset --hard HEAD@{1}
 <br>
 
 
-## Activity 6: Reverting the last commit without deleting your changes
+## Activity 6: Reverting Commits on your Local / Remote Repo
 
-#### a. Make a minor change to `"TODO"`
+> Repo: `minions-visitorship`
+> Branch: `revert-p<N>`
+>
+> Once you have pushed a commit, your teammates may already have pulled it. If you `reset` it away and force push, their history no longer matches GitLab's, which causes a git mess for everyone.
+>
+> Instead, `git revert` undoes a commit by adding a **new** commit that does the exact opposite. Nothing is removed from history, so it is safe on shared branches.
+>
+> Note the difference between reset and revert!
+> - `git reset` deletes the commits you dont want from the commit history of the repo
+> - `git revert` adds a commit to counteract the insertions/deletions made by a commit, thus older commit history remains intact
 
-#### b. Stage the change
+#### a. Create and push a branch to practise on
+```
+git switch -c revert-p<N> s4
+git push -u origin revert-p<N>
+```
+- Unlike `undo-p<N>`, this branch is on GitLab, so we must not rewrite its history
 
-#### c. Commit the change with a message
+#### b. Find the bad commit
+- Run `git log --oneline` and copy its hash
+- Commit `fix(config): change YEAR to 2023` was a mistake. The analysis should be for 2024
+- Note that it is **not** the latest commit. 2 more commits were made after it, and we want to keep them
 
-#### d. Revert the last commit but **KEEP the changes staged**
+#### c. Revert it
+```
+git revert <hash>
+```
+- nano opens with a pre-filled message, `Revert "fix(config): change YEAR to 2023"`. Save and exit to accept it
+    - Add `--no-edit` to skip nano and accept the message straight away: `git revert <hash> --no-edit`
+- Open `session4_lab/config.py`. `YEAR` is back to `2024`
+- Open `pipeline.py` and `notes.md`. The later commits are untouched
+- Run `git log --oneline -n 2`:
+    ```
+    7e731fb (HEAD -> revert-p1) Revert "fix(config): change YEAR to 2023"
+    ba97285 (origin/revert-p1, origin/s4, s4) docs(notes): update notes
+    ```
+  - The original commit is still in the history. The revert is a **new** commit on top that cancels it out
+- Run `git push`. A plain push works, as you only **added** a commit
 
-#### e. Repeat parts b. to c. to commit the change again
-
-#### f. Revert the last commit but KEEP the changes unstaged
+#### d. Revert the revert
+- Changed your mind? A revert is just a normal commit, so you can revert it too
+- Copy the hash of the `Revert "fix(config): ..."` commit, then run:
+    ```
+    git revert <hash> --no-edit
+    ```
+- Open `config.py`. `YEAR` is `2023` again
+- Run `git log --oneline -n 3`. The new commit is named `Reapply "fix(config): change YEAR to 2023"` (on older versions of Git, `Revert "Revert "fix(config): ...""`)
+- Run `git push`
 
 <hr>
 
-Note: In this activity, we explored 2 ways to revert the last commit, but retain the changes in our working directory. The difference between this and Activity 4 is that the changes were reverted without leaving them in your working directory
+<span style="color:salmon">A reverted commit is still in the history. If you pushed a password or API key, reverting the commit does **not** remove it from GitLab. Treat it as leaked, and revoke or rotate it immediately (Session 2, Activity 3).</span>
+
+**What about a typo in a commit message I already pushed?**
+- If it's a minor typo, just leave it, as rewriting remote history is dangerous and messy if you are working in a team
+- If you *really* want to fix it, you can force push an amended commit message, but **only** if you're sure **no one else has pulled the branch**:
+    ```
+    git commit --amend -m "<corrected message>"
+    git push --force-with-lease
+    ```
+    - `--amend` only allows you to rewrite the commit message for the last commit
+    - `--force-with-lease` will force a push unless someone else has pushed to the branch since you last fetched, protecting you from accidentally overwriting their work
+- If others have already pulled the branch, force pushing a rewritten commit history will cause serious problems for them. Their local history will have diverged from the remote, and Git will refuse to let them push normally (a git mess!)
+
 
 
 <br>
 
+## Activity 7: You Made Changes on the Wrong Branch
 
-## Activity 7: Discard uncommited changes in your working directory
+> Repo: `minions-visitorship`
+> Branches: `revert-p<N>` (the wrong branch) → `notes-p<N>` (the correct branch)
+>
+> You have been working away, then realise you were on the wrong branch the whole time. How you fix it depends on how far your change got: not committed, committed, or pushed.
 
+#### a. Set up the correct branch
+```
+git switch -c notes-p<N> s4
+git switch revert-p<N>
+```
+- You are now back on `revert-p<N>`. For this activity, pretend this is the **wrong** branch, and that you should have been working on `notes-p<N>`
+
+<hr>
+
+#### b. Case 1: Not committed yet
+- Create a new file `session4_lab/todo_p<N>.md`, type anything in it and stage it with `git add .`
+- You realise you are on the wrong branch. Simply switch:
+    ```
+    git switch notes-p<N>
+    ```
+- Run `git status`. Your staged file came with you
+  - As in Session 3, Activity 6, uncommitted changes (staged or not) are not on any branch, so they follow you when you switch
+  - If Git refuses to switch, stash your changes first (Session 3, Activity 6)
+- Switch back with `git switch revert-p<N>` to continue
+
+<hr>
+
+#### c. Case 2: Committed, but not pushed
+- Commit the file on the wrong branch:
+    ```
+    git commit -m "docs: add p<N> todo list"
+    ```
+- You realise it should have been on `notes-p<N>`. Copy the commit's hash from `git log --oneline`
+- Copy the commit onto the correct branch **first**:
+    ```
+    git switch notes-p<N>
+    git cherry-pick <hash>
+    ```
+  - `git cherry-pick` copies a commit from another branch onto your current branch, as a new commit with the same changes and message
+  - You should see `[notes-p1 853e326] docs: add p1 todo list`
+- Then remove it from the wrong branch:
+    ```
+    git switch revert-p<N>
+    git reset --hard HEAD~1
+    ```
+  - This is safe here, as the commit is now on `notes-p<N>`, and was never pushed
+- Run `git log --oneline -n 1` on both branches to check the commit is only on `notes-p<N>`
+
+> **Why `--hard` here?** The Git Summary Notes use `git reset --soft HEAD~1`, `git restore --staged .` then `git restore .`. That works when the commit only **edited** files. But if the commit **added a new file**, `git restore .` leaves that file behind as an untracked file, and your next `git switch notes-p<N>` fails with `untracked working tree files would be overwritten by checkout`. `git reset --hard HEAD~1` removes it cleanly in one step.
+
+<hr>
+
+#### d. Case 3: Committed **and** pushed
+- On `revert-p<N>`, create a new file `session4_lab/plan_p<N>.md`, type anything in it, then stage, commit and push:
+    ```
+    git add .
+    git commit -m "docs: add p<N> plan"
+    git push
+    ```
+- Oops, wrong branch again, and this time it is already on GitLab. Copy the commit's hash
+- Copy the commit onto the correct branch, and push it:
+    ```
+    git switch notes-p<N>
+    git cherry-pick <hash>
+    git push -u origin notes-p<N>
+    ```
+- Undo it on the wrong branch with `revert`, as it has been pushed:
+    ```
+    git switch revert-p<N>
+    git revert <hash> --no-edit
+    git push
+    ```
+- Run `ls session4_lab` on both branches to check `plan_p<N>.md` is only on `notes-p<N>`
+
+<hr>
+
+| How far did the change get? | Fix |
+| --- | --- |
+| Not committed | `git switch` to the correct branch. Your changes come with you |
+| Committed, not pushed | `git cherry-pick` onto the correct branch, then `git reset --hard HEAD~1` on the wrong branch |
+| Committed and pushed | `git cherry-pick` onto the correct branch and push, then `git revert` on the wrong branch and push |
+
+- The wrong commit will still be in the wrong branch's remote history, as completely cleaning the remote history is dangerous and messy
+
+<br>
+
+<span style="color:salmon">Before undoing anything, ask: where is my change right now? Then use the safest command for that place.</span>
+
+| I want to... | Use |
+| --- | --- |
+| Discard changes I haven't committed | `git restore <file>` |
+| Unstage a file, but keep the changes | `git restore --staged <file>` |
+| Look at an old version of the repo | `git switch --detach <hash>`, then `git switch -` |
+| Get back an old version of one file | `git restore --source=<hash> <file>` |
+| Undo my last commit (not pushed), but keep the changes | `git reset --soft HEAD~1` / `git reset --mixed HEAD~1` |
+| Throw away commits (not pushed) completely | `git reset --hard <hash>` |
+| Get back commits I threw away | `git reflog`, then `git reset --hard <hash>` |
+| Undo a pushed commit | `git revert <hash>` |
+| Move a commit to another branch | `git cherry-pick <hash>` |
 
 
 <br>
