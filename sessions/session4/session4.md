@@ -518,3 +518,10 @@ git switch revert-p<N>
 > - `git rebase <branch>` does the same replaying on its own, without pulling. 
 >   - For example, on a feature branch, `git rebase main` replays your feature branch's commits on top of the latest `main`. It is an alternative to `git merge main` for bringing your branch up to date
 >   - Only rebase commits you have **NOT** pushed to remote yet. Never rebase a branch your teammates are also working on, or their history will no longer match GitLab's (a git mess!)
+
+
+<br>
+
+<hr>
+<h1 align="center">End of Session 4</h1>
+<hr>
