@@ -131,12 +131,14 @@
 #### b. View the State of the Repo at a Particular Commit
 - Open the list of commits using `git log --oneline`
 
-```python
-git checkout <hash>
-```
+>```python
+>git checkout <hash>
+>```
+> FYI: `git switch --detach <hash>` does the same thing, but does not print the long helpful message that `git checkout <hash>` does
+>- This moves HEAD to that commit and updates your working directory to state of the repo as of that commit. This is useful for quickly inspecting and running an old version of your project. 
+>- You land in a **detached HEAD** state (where HEAD points at a commit instead of a branch, so any new commits you make here aren't on any branch). 
 
-- This moves HEAD to that commit and updates your working directory to state of the repo as of that commit. This is useful for quickly inspecting and running an old version of your project. 
-- You land in a **detached HEAD** state (where HEAD points at a commit instead of a branch, so any new commits you make here aren't on any branch). 
+- Run `git checkout 87c2950`
 
 #### c. What you can do in a detached HEAD state
 - Try running `git status` and `git branch`
