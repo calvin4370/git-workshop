@@ -110,3 +110,20 @@ git commit
     - `git pull origin main --no-rebase` (fetch and merge in one step, as in Session 3, Activity 5)
 - Better still, merge `main` into your feature branch **before** you open a merge request, so the conflict never reaches GitLab
 - Only ever use `git merge` to bring `main` **into** your feature branch. **Never** merge your feature branch into `main` with `git merge`. That must always go through a reviewed merge request
+
+
+## Activity 8: Git Rebase
+
+> - In session 2, we went through `git pull --rebase` and `git pull --no-rebase`
+> - Both combine your local commits with new commits from the remote, when the two have diverged:
+>     - `--no-rebase` (**merge**): joins the two lines of work with a new **merge commit**. The history shows where the work split and joined back together
+>     - `--rebase`: sets your commits aside, moves your branch up to the latest remote commit, then **replays** your commits on top, one by one. The history stays a straight line, with no merge commit, but this <span style="color:salmon">rewrites commit history (which is dangerous if others have pulled the original history)</span>
+> - `git rebase <branch>` does the same replaying on its own, without pulling.
+>     - For example, on a feature branch, `git rebase main` replays your feature branch's commits on top of the latest `main`. It is an alternative to `git merge main` for bringing your branch up to date
+>     - Only rebase commits you have **NOT** pushed to remote yet. Never rebase a branch your teammates are also working on, or their history will no longer match GitLab's (a git mess!)
+
+<br>
+
+<hr>
+<h1 align="center">End of Session 4</h1>
+<hr>

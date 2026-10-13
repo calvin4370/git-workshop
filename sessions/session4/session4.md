@@ -551,21 +551,3 @@ git switch revert-p<N>
 | Get back commits I threw away                          | `git reflog`, then `git reset --hard <hash>`           |
 | Undo a pushed commit                                   | `git revert <hash>`                                    |
 | Move a commit to another branch                        | `git cherry-pick <hash>`                               |
-
-<br>
-
-## Activity 8: Git Rebase
-
-> - In session 2, we went through `git pull --rebase` and `git pull --no-rebase`
-> - Both combine your local commits with new commits from the remote, when the two have diverged:
->     - `--no-rebase` (**merge**): joins the two lines of work with a new **merge commit**. The history shows where the work split and joined back together
->     - `--rebase`: sets your commits aside, moves your branch up to the latest remote commit, then **replays** your commits on top, one by one. The history stays a straight line, with no merge commit, but this <span style="color:salmon">rewrites commit history (which is dangerous if others have pulled the original history)</span>
-> - `git rebase <branch>` does the same replaying on its own, without pulling.
->     - For example, on a feature branch, `git rebase main` replays your feature branch's commits on top of the latest `main`. It is an alternative to `git merge main` for bringing your branch up to date
->     - Only rebase commits you have **NOT** pushed to remote yet. Never rebase a branch your teammates are also working on, or their history will no longer match GitLab's (a git mess!)
-
-<br>
-
-<hr>
-<h1 align="center">End of Session 4</h1>
-<hr>
