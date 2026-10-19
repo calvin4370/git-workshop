@@ -66,8 +66,8 @@ Est. timing: Setup 5m, A1 15m, A2 20m, A3 15m, A4 25m, A5 15m = ~1h40m (+25m wit
       <td>Download remote branches and commits <strong>without</strong> merging them</td>
     </tr>
     <tr>
-      <td><code>git log --oneline --graph</code></td>
-      <td>Commit history, with lines showing where work split and merged</td>
+      <td><code>git log --oneline --graph</code><br><code>git log --oneline --first-parent</code></td>
+      <td>Commit history, with lines showing where work split and merged<br>Only the commits made directly on the current branch, e.g. one line per merge request merged into <code>main</code></td>
     </tr>
     <tr>
       <td><code>git branch -d &lt;branch&gt;</code></td>
@@ -222,7 +222,10 @@ Reading the code is not always enough. As a reviewer, you should also check that
 - Run `git switch p<M>-mr`, where `<M>` is the number of the participant you are reviewing
   - You should see:
 
-    ![Switching to the branch under review](../../assets/s5-switch-review.png)
+    ```
+    branch 'p1-mr' set up to track 'origin/p1-mr'.
+    Switched to a new branch 'p1-mr'
+    ```
 
   - You now have a local copy of their branch <span style="color:skyblue">(this is the same as Session 2, Activity 7)</span>
 - Run `python session3_lab/features.py`
@@ -258,9 +261,6 @@ Reading the code is not always enough. As a reviewer, you should also check that
 #### c. Check your merge request
 - Refresh your merge request on GitLab
   - Your new commit now shows up in the `Commits` and `Changes` tabs
-
-    ![New commit in the merge request](../../assets/s5-mr-new-commit.png)
-
   - You do not need to open a new merge request. GitLab automatically picks up any new commits pushed to the source branch, and adds them to the open merge request
 - Reply to your reviewer's comment e.g. `Done, added a docstring`, then click `Resolve thread`
 
@@ -281,9 +281,11 @@ Reading the code is not always enough. As a reviewer, you should also check that
 
 #### a. See the blocked merge request
 - Refresh your merge request on GitLab
-- You should see:
+- The merge section at the bottom of the `Overview` tab now shows something like:
 
-    ![Merge blocked by merge conflicts](../../assets/s5-merge-blocked.png)
+    > ⚠️ **Merge blocked:** merge conflicts must be resolved.
+    >
+    > `Resolve conflicts`  `Resolve locally`
 
   - The `Merge` button is disabled, so nobody can merge it until the conflict is resolved
   - GitLab gives you 2 options to fix it: `Resolve conflicts` (in the browser) or `Resolve locally` (on your own machine)
@@ -296,9 +298,7 @@ We will look at both ways. As Participant 1, I will first demonstrate resolving 
 Watch as I resolve the conflict in my merge request on GitLab:
 
 - I click `Resolve conflicts`
-- GitLab shows the conflicting lines from both branches. For my function, I choose **my** version <span style="color:skyblue">(the one with my docstring and print line)</span>
-
-    ![Resolving conflicts on GitLab](../../assets/s5-gitlab-resolve.png)
+- GitLab shows each conflict with both versions side by side: the version from my branch, and the version from `main`. For my function, I choose **my** version <span style="color:skyblue">(the one with my docstring and print line)</span>
 
 - I click `Commit to source branch`
   - GitLab creates a merge commit on my branch on GitLab, and my merge request is no longer blocked
@@ -313,7 +313,11 @@ Watch as I resolve the conflict in my merge request on GitLab:
   - Run `git merge main`
   - You should see:
 
-    ![Merge conflict when merging main](../../assets/s5-merge-conflict.png)
+    ```
+    Auto-merging session3_lab/features.py
+    CONFLICT (content): Merge conflict in session3_lab/features.py
+    Automatic merge failed; fix conflicts and then commit the result.
+    ```
 
 - Open `session3_lab/features.py`. Only **your** function has a conflict, as the other three functions were merged automatically:
     ```python
@@ -336,9 +340,7 @@ Watch as I resolve the conflict in my merge request on GitLab:
 - Run `git commit`
   - nano opens with a pre-filled message `Merge branch 'main' into p<N>-mr`. Save and exit to accept it
 - Run `git push`
-- Refresh your merge request on GitLab. It is no longer blocked
-
-    ![Merge request no longer blocked](../../assets/s5-mr-unblocked.png)
+- Refresh your merge request on GitLab. The `Merge blocked` message is gone, and the `Merge` button is available again
 
 <hr>
 
@@ -383,9 +385,16 @@ Watch as I resolve the conflict in my merge request on GitLab:
   - Run `git pull`
 - Open `session3_lab/features.py`. All four functions now have their author's docstring and print line
 - Run `git log --oneline --graph`
-  - You should see each merge request joining `main` at its own merge commit
-
-    ![Commit history after merging](../../assets/s5-log-graph.png)
+  - With 4 merge requests merged, the lines get tangled and hard to read
+- Run `git log --oneline --first-parent` instead
+  - `--first-parent` only shows the commits made directly on `main`, so you see one line for each merge request that was merged:
+    ```
+    196d8b0 Merge branch 'p4-mr' into 'main'
+    bc57416 Merge branch 'p3-mr' into 'main'
+    fd31dad Merge branch 'p2-mr' into 'main'
+    795b288 Merge branch 'p1-mr' into 'main'
+    74b1c09 Merge branch 'facilitator/s5-return-none' into 'main'
+    ```
 
 #### c. Delete your local feature branch
 - Your feature branch was deleted on GitLab, but your local copy is still there
@@ -427,7 +436,13 @@ Watch as I resolve the conflict in my merge request on GitLab:
 - Run `git log --oneline --graph teammate-p<N> rebase-p<N>`
   - You should see both branches splitting from the same commit:
 
-    ![Branches before rebasing](../../assets/s5-rebase-graph-before.png)
+    ```
+    * 43168a2 docs: add teammate notes
+    | * e952bf3 feat: extend feature file
+    | * c43bd9e feat: add feature file
+    |/
+    * c171082 fix(config): change YEAR to 2023
+    ```
 
 #### c. Try merging (on a copy of your branch)
 - Run `git switch -c merge-p<N> rebase-p<N>`
@@ -443,7 +458,11 @@ Watch as I resolve the conflict in my merge request on GitLab:
   - You should see `Successfully rebased and updated refs/heads/rebase-p<N>.`
 - Run `git log --oneline --graph`
 
-    ![Branch after rebasing](../../assets/s5-rebase-graph-after.png)
+    ```
+    * 5a1e0ae feat: extend feature file      ← was e952bf3
+    * 5c224f2 feat: add feature file         ← was c43bd9e
+    * 43168a2 docs: add teammate notes
+    ```
 
   - The history is now a straight line, with your 2 commits on top of the teammate's commit
   - Your commits have the same messages and changes, but **different hashes**. Rebasing created new copies of them
@@ -452,7 +471,10 @@ Watch as I resolve the conflict in my merge request on GitLab:
 - Run `git push`
   - You should see:
 
-    ![Push rejected after rebasing](../../assets/s5-rebase-push-rejected.png)
+    ```
+     ! [rejected]        rebase-p1 -> rebase-p1 (non-fast-forward)
+    error: failed to push some refs to '<repo URL>'
+    ```
 
 - Run `git status`. It says your branch and `origin/rebase-p<N>` have diverged
   - GitLab still has your old commits, while your branch now has new copies of them. The only way to push now is to force push, which would cause a git mess for anyone else who had pulled the branch
