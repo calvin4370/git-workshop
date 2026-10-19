@@ -127,8 +127,8 @@ The workflow for doing this is as follows:
 
 #### a. Navigate into the `minions-visitorship` directory
 - Run `cd ~/minions-visitorship`
-- Run `git status` to make sure your working tree is clean
-  - If you have any uncommitted changes, discard them using `git restore .`
+- Run `git status` to check your current branch and make sure your working tree is clean
+  - <span style="color:salmon">If you have any uncommitted changes on your current branch, discard them using `git restore .`</span>
 
 #### b. Create a new branch off `main` for this session
 - Run `git switch main`
