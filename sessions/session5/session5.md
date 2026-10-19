@@ -1,4 +1,98 @@
+<!--
+FACILITATOR PREP (hidden when rendered)
+
+Before the session:
+1. GitLab → Settings → Repository → Protected branches → `main`:
+     Allowed to merge: Developers + Maintainers   (so participants can merge MRs in Activity 5)
+     Allowed to push:  No one                     (so nobody can push straight to main)
+2. GitLab → Settings → Merge requests: check Merge method = "Merge commit". Note whether approvals are required.
+3. Check that `session3_lab/features.py` on `main` still has `return` in all four `participant<N>()` functions
+   (participants branch `p<N>-mr` off main and replace their own `return`).
+4. Delete leftover Session 4 branches on GitLab (`revert-p<N>`, `notes-p<N>`).
+5. Prepare the Activity 4 conflict, but don't merge it yet:
+     git switch main && git pull
+     git switch -c facilitator/s5-return-none
+     # in session3_lab/features.py, change all 4 `return` lines to `return None`
+     git add session3_lab/features.py
+     git commit -m "refactor(features): return None explicitly"
+     git push -u origin facilitator/s5-return-none
+   Open its MR into main. Leave it open.
+
+During the session:
+- Activity 4: merge the `facilitator/s5-return-none` MR. Do NOT let any participant MR be merged before this.
+
+Screenshots to take (placeholders below point to ../../assets/s5-*.png):
+  s5-new-mr.png, s5-mr-overview.png, s5-review-comment.png, s5-switch-review.png, s5-mr-new-commit.png,
+  s5-merge-blocked.png, s5-gitlab-resolve.png, s5-merge-conflict.png, s5-mr-unblocked.png, s5-merge-options.png,
+  s5-log-graph.png, s5-rebase-graph-before.png, s5-rebase-graph-after.png, s5-rebase-push-rejected.png
+
+Est. timing: Setup 5m, A1 15m, A2 20m, A3 15m, A4 25m, A5 15m = ~1h40m (+25m with optional A6)
+-->
+
 # Session 5: Merge Requests and Code Review
+
+### Reference Table
+
+<table>
+  <colgroup>
+    <col style="width: 40%">
+    <col style="width: 60%">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>git status</code></td>
+      <td>See what has changed, and which branch you are on</td>
+    </tr>
+    <tr>
+      <td><code>git switch &lt;branch&gt;</code><br><code>git switch -c &lt;branch&gt; &lt;from-branch&gt;</code></td>
+      <td>Switch to a branch<br>Create a new branch from <code>&lt;from-branch&gt;</code>, and switch to it</td>
+    </tr>
+    <tr>
+      <td><code>git add &lt;file&gt;</code><br><code>git commit -m "commit message"</code></td>
+      <td>Stage a file<br>Commit staged changes</td>
+    </tr>
+    <tr>
+      <td><code>git push</code><br><code>git pull</code></td>
+      <td>Upload your commits to your branch on GitLab<br>Download and merge changes from your branch on GitLab</td>
+    </tr>
+    <tr>
+      <td><code>git fetch</code></td>
+      <td>Download remote branches and commits <strong>without</strong> merging them</td>
+    </tr>
+    <tr>
+      <td><code>git log --oneline --graph</code></td>
+      <td>Commit history, with lines showing where work split and merged</td>
+    </tr>
+    <tr>
+      <td><code>git branch -d &lt;branch&gt;</code></td>
+      <td>Delete a local branch (only if merged)</td>
+    </tr>
+    <tr>
+      <td><code>git merge &lt;branch&gt;</code></td>
+      <td>Merge <code>&lt;branch&gt;</code> into your <strong>current</strong> branch, e.g. <code>git merge main</code> on your feature branch</td>
+    </tr>
+    <tr>
+      <td><code>git merge --abort</code></td>
+      <td>Cancel a merge in progress, and go back to how things were before</td>
+    </tr>
+    <tr>
+      <td><code>git rebase &lt;branch&gt;</code></td>
+      <td>Replay your current branch's commits on top of <code>&lt;branch&gt;</code> (Activity 6)</td>
+    </tr>
+  </tbody>
+</table>
+
+> **Tip:** `git log` opens its output in a scrollable viewer when it does not fit on your screen. Press **`q`** to quit.
+
+<br>
+
+## Overview
 
 As we learnt from Session 3 on Branching, we do not commit our changes straight to `main` to prevent any bad changes from making it straight into production.
 
@@ -8,66 +102,220 @@ The workflow for doing this is as follows:
 
 1. We create a feature branch off main, say `pipeline/add-models`
 2. We work on our changes in the branch, staging and committing changes locally as we go
-    - By commiting changes, they are tracked locally in your local git repo
+    - By committing changes, they are tracked locally in your local git repo
     - Your teammates cannot see them yet, as all they can see is their own local repo, and the remote repo on GitLab
 3. Once we are done (or any time in between commits), we can push our commits to remote
     - This pushes the feature branch to the remote repo on GitLab where everyone in the team can see the code
     - They can now see the changes on the web, or even pull the branch to work on the code locally
-4. To merge the feature branch into main (or any other branch), we initiate a merge review on GitLab from our browser.
+4. To merge the feature branch into main (or any other branch), we initiate a merge request on GitLab from our browser.
 5. A reviewer, typically someone else on the team, will go through the changes in the feature branch
     - They can leave comments, approve or disapprove the merge request
     - If the merge request is approved, the feature branch's changes can be merged into main
     - This updates the main branch remotely, and other team members need to pull the main branch to get the changes locally.
 
+>**Roles in a merge request:**
+>
+>- **Author**: The person who made the changes and opens the merge request
+>- **Reviewer**: A teammate who goes through the changes, leaves comments, and approves the merge request (or asks for changes)
+>- **Assignee**: The person who actually merges the merge request. This could also be the Author or the Reviewer
+>
+> Note: Merge requests are called Pull requests (PR) on GitHub. Otherwise, they are essentially the same thing.
 
 <br>
 
+## Setup
 
-## Activity 1: 
+#### a. Navigate into the `minions-visitorship` directory
+- Run `cd ~/minions-visitorship`
+- Run `git status` to make sure your working tree is clean
+  - If you have any uncommitted changes, discard them using `git restore .`
 
+#### b. Create a new branch off `main` for this session
+- Run `git switch main`
+- Run `git pull` to make sure your local `main` is up to date
+- Run `git switch -c p<N>-mr main`, where `<N>` is your participant number
+
+#### c. Make a change, then commit and push it
+- Open `session3_lab/features.py` and replace `return` in **your** function (`participant<N>()`) with a line of your own e.g. `print("<your name> was here")`
+- Run `git add session3_lab/features.py`
+- Run `git commit -m "feat(features): update participant<N>"`
+- Run `git push -u origin p<N>-mr` <span style="color:skyblue">(the first push of a new branch, so we need `-u origin <branch>`)</span>
+
+#### d. Find out whose merge request you will review
+- Each of you will review the merge request of the participant **before** you:
+  - Participant 2 reviews Participant 1's merge request
+  - Participant 3 reviews Participant 2's merge request
+  - Participant 4 reviews Participant 3's merge request
+  - Participant 1 reviews Participant 4's merge request
 
 <br>
 
-
-## Activity 2: Fixing a Merge Request Blocked by Merge Conflicts
+## Activity 1: Opening a Merge Request
 
 > Repo: `minions-visitorship`
-> Branch: `feature/p<N>-update` (your feature branch from Session 3)
+> Branch: `p<N>-mr`
 >
-> While your feature branch was in progress, a teammate's merge request was merged into `main`, and it changed the **same lines** you changed. Your merge request now has a merge conflict, and GitLab will not let it be merged until the conflict is resolved.
->
-> GitLab can resolve simple conflicts in the browser, but you cannot run or test your code there, and for some conflicts GitLab does not offer it at all. Instead, the usual fix is to **merge `main` into your feature branch locally**, resolve the conflict in your own editor, check that everything still works, then push. Once your branch already contains `main`'s changes, there is nothing left for the merge request to conflict with.
+> You are the **Author** in this activity.
 
-> **Facilitator:** merge a change into `main` that changes `return` to `return None` in **all four** `participant<N>()` functions in `session3_lab/features.py`. Each participant changed their own function in Session 3, so everyone will get a conflict on exactly one line.
+#### a. Start a new merge request
+- Go to the `minions-visitorship` repo on GitLab
+- If you see a `Create merge request` prompt for your branch, click it
+- Otherwise, go to `Merge requests` → `New merge request`
+
+#### b. Choose the source and target branches
+- Set the **source branch** to `p<N>-mr` <span style="color:skyblue">(the branch with your changes)</span>
+- Set the **target branch** to `main` <span style="color:skyblue">(the branch you want to merge your changes into)</span>
+- Click `Compare branches and continue`
+
+    ![New merge request on GitLab](../../assets/s5-new-mr.png)
+
+#### c. Fill in the merge request
+- Title: describe the change, like a commit message e.g. `feat(features): update participant<N>`
+- Description: tell your reviewer what you changed, why, and how to test it, e.g.
+    ```
+    ## What
+    Updated participant<N>() to print a message.
+
+    ## Why
+    Session 5 practice.
+
+    ## How to test
+    Run `python session3_lab/features.py`. It should run without errors.
+    ```
+- Reviewer: set it to the participant **after** you
+- Assignee: also set it to your reviewer. This sends them a notification, and they will merge it later in Activity 5
+- Click `Create merge request`
+
+#### d. Look around your merge request
+- `Overview` shows the description, comments, and the merge section at the bottom
+- `Commits` shows the commits on your branch that are not on `main` yet
+- `Changes` shows exactly what your branch changes, line by line
+
+    ![Merge request overview](../../assets/s5-mr-overview.png)
+
+- Do not click `Merge` yet
+
+> Note: If your work is not ready for review yet, you can mark your merge request as a **Draft**. GitLab will not allow it to be merged until you mark it as ready.
+
+<br>
+
+## Activity 2: Reviewing a Merge Request
+
+> Repo: `minions-visitorship`
+>
+> You are the **Reviewer** in this activity, for the participant before you.
+
+#### a. Review the changes on GitLab
+- Go to `Merge requests` and open the merge request you are reviewing
+- Open the `Changes` tab
+- Hover over their `print(...)` line, and click the comment icon that appears beside it
+- Leave a comment asking for a change, e.g. `Could you add a docstring to this function, explaining what it does?`
+
+    ![Leaving a review comment](../../assets/s5-review-comment.png)
+
+- Click `Start a review`, then `Submit review`
+
+#### b. Run their code on your machine
+Reading the code is not always enough. As a reviewer, you should also check that the code actually runs.
+
+- Run `git fetch`
+- Run `git switch p<M>-mr`, where `<M>` is the number of the participant you are reviewing
+  - You should see:
+
+    ![Switching to the branch under review](../../assets/s5-switch-review.png)
+
+  - You now have a local copy of their branch <span style="color:skyblue">(this is the same as Session 2, Activity 7)</span>
+- Run `python session3_lab/features.py`
+  - If no error shows up, the code runs
+- Run `git switch p<N>-mr` to switch back to your own branch
+
+#### c. Don't approve yet
+- You asked for a change, so wait for the Author to make it first (Activity 3)
+
+<br>
+
+## Activity 3: Addressing Review Feedback
+
+> Repo: `minions-visitorship`
+> Branch: `p<N>-mr`
+>
+> You are the **Author** again in this activity.
+
+#### a. Read your reviewer's comment
+- Open your merge request on GitLab. Your reviewer's comment is in the `Overview` tab
+
+#### b. Make the change, then commit and push
+- Open `session3_lab/features.py` and add a docstring to **your** function, as the first line inside it:
+    ```python
+    def participant<N>():
+        """Print a message from participant <N>."""
+        print("<your name> was here")
+    ```
+- Run `git add session3_lab/features.py`
+- Run `git commit -m "docs(features): add docstring to participant<N>"`
+- Run `git push`
+
+#### c. Check your merge request
+- Refresh your merge request on GitLab
+  - Your new commit now shows up in the `Commits` and `Changes` tabs
+
+    ![New commit in the merge request](../../assets/s5-mr-new-commit.png)
+
+  - You do not need to open a new merge request. GitLab automatically picks up any new commits pushed to the source branch, and adds them to the open merge request
+- Reply to your reviewer's comment e.g. `Done, added a docstring`, then click `Resolve thread`
+
+#### d. Reviewer: approve the merge request
+- Check the new change in the `Changes` tab
+- Click `Approve`
+- Do not merge it yet
+
+<br>
+
+## Activity 4: Fixing Merge Conflicts in a Merge Request
+> Repo: `minions-visitorship`
+> Branch: `p<N>-mr`
+>
+> While your merge request was being reviewed, a teammate's merge request was merged into `main`. It changed the **same lines** you changed, so your merge request now has a merge conflict.
+>
+> I will now merge a merge request into `main` that changes `return` to `return None` in all four `participant<N>()` functions in `session3_lab/features.py`. Since each of you changed your own function, everyone will get a merge conflict on exactly one line.
 
 #### a. See the blocked merge request
-- On GitLab, open a merge request from `feature/p<N>-update` into `main` (or open your existing one from Activity 1)
-- GitLab shows that the merge request is blocked by merge conflicts (e.g. `Merge blocked: merge conflicts must be resolved`), and the `Merge` button is disabled
-- **Do not** click `Resolve conflicts` on GitLab. We will fix it locally instead
-
-#### b. Update your local `main`
-```
-git switch main
-git pull
-```
-- Your local `main` now has the teammate's change
-
-#### c. Merge `main` into your feature branch
-```
-git switch feature/p<N>-update
-git merge main
-```
-- `git merge <branch>` merges `<branch>` into your **current** branch. Here, it merges `main` into `feature/p<N>-update`
+- Refresh your merge request on GitLab
 - You should see:
-    ```
-    Auto-merging session3_lab/features.py
-    CONFLICT (content): Merge conflict in session3_lab/features.py
-    Automatic merge failed; fix conflicts and then commit the result.
-    ```
-- Run `git status`. It says `You have unmerged paths`, and lists `features.py` as `both modified`
 
-#### d. Resolve the conflict
-- Open `session3_lab/features.py`. Only **your** function has a conflict. The other three functions were merged automatically, as only `main` changed them:
+    ![Merge blocked by merge conflicts](../../assets/s5-merge-blocked.png)
+
+  - The `Merge` button is disabled, so nobody can merge it until the conflict is resolved
+  - GitLab gives you 2 options to fix it: `Resolve conflicts` (in the browser) or `Resolve locally` (on your own machine)
+
+<hr>
+
+We will look at both ways. As Participant 1, I will first demonstrate resolving the conflict on GitLab (part b). Then, Participants 2, 3 and 4 will resolve their conflicts locally (part c).
+
+#### b. Demonstration: Resolving the conflict on GitLab
+Watch as I resolve the conflict in my merge request on GitLab:
+
+- I click `Resolve conflicts`
+- GitLab shows the conflicting lines from both branches. For my function, I choose **my** version <span style="color:skyblue">(the one with my docstring and print line)</span>
+
+    ![Resolving conflicts on GitLab](../../assets/s5-gitlab-resolve.png)
+
+- I click `Commit to source branch`
+  - GitLab creates a merge commit on my branch on GitLab, and my merge request is no longer blocked
+- Note that this commit was made on GitLab, not on my machine, so my local branch is now behind. I run `git pull` to update it
+
+#### c. Participants 2, 3 and 4: Resolve the conflict locally
+- Update your local `main`:
+  - Run `git switch main`
+  - Run `git pull`
+- Merge `main` into your feature branch:
+  - Run `git switch p<N>-mr`
+  - Run `git merge main`
+  - You should see:
+
+    ![Merge conflict when merging main](../../assets/s5-merge-conflict.png)
+
+- Open `session3_lab/features.py`. Only **your** function has a conflict, as the other three functions were merged automatically:
     ```python
     def participant1():
         return None
@@ -75,44 +323,83 @@ git merge main
 
     def participant2():
     <<<<<<< HEAD
+        """Print a message from participant 2."""
         print("Participant 2 was here")
     =======
         return None
     >>>>>>> main
     ```
-    - Between `<<<<<<< HEAD` and `=======` is **your** version, from your feature branch
-    - Between `=======` and `>>>>>>> main` is the version from `main`
-- Keep your `print(...)` line, and delete **all** the markers (`<<<<<<<`, `=======`, `>>>>>>>`)
-    - In VSCode, you can instead click `Accept Current Change` above the conflict
-- Save the file, and run your code to check it still works
+- Keep your version, and delete all the conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`)
+  - In VSCode, you can click `Accept Current Change` above the conflict instead
+- Save the file, and run `python session3_lab/features.py` to check it still works
+- Run `git add session3_lab/features.py`
+- Run `git commit`
+  - nano opens with a pre-filled message `Merge branch 'main' into p<N>-mr`. Save and exit to accept it
+- Run `git push`
+- Refresh your merge request on GitLab. It is no longer blocked
 
-#### e. Complete the merge and push
-```
-git add session3_lab/features.py
-git commit
-```
-- nano opens with a pre-filled message, `Merge branch 'main' into feature/p<N>-update`. Save and exit to accept it
-- Run `git log --oneline --graph` to see `main` joining your branch at the merge commit
-- Run `git push` to update your feature branch on GitLab
-
-#### f. Check your merge request again
-- Refresh your merge request on GitLab
-  - The conflict is gone, and the merge request can now be merged
-- Leave it open for now
+    ![Merge request no longer blocked](../../assets/s5-mr-unblocked.png)
 
 <hr>
 
-<span style="color:salmon">If your merge request has merge conflicts, merge `main` into your feature branch locally, resolve the conflicts, test, then push. The merge request updates automatically.</span>
+#### d. Compare the two ways
 
-- `git merge main` uses your **local** `main`, which is why you `git pull` on `main` first. These all do the same thing:
-    - `git switch main`, `git pull`, `git switch <feature-branch>`, `git merge main` (updates your local `main` too)
-    - `git fetch`, then `git merge origin/main` (merges the remote `main` directly, without updating your local `main`)
-    - `git pull origin main --no-rebase` (fetch and merge in one step, as in Session 3, Activity 5)
-- Better still, merge `main` into your feature branch **before** you open a merge request, so the conflict never reaches GitLab
-- Only ever use `git merge` to bring `main` **into** your feature branch. **Never** merge your feature branch into `main` with `git merge`. That must always go through a reviewed merge request
+| | Resolve on GitLab | Resolve locally |
+| --- | --- | --- |
+| Speed | Fast, a few clicks | More steps |
+| Can you run or test the result? | No | Yes |
+| Works for every conflict? | Only simple text conflicts (not notebooks, renamed files or large conflicts) | Yes |
+| Afterwards | Your local branch is behind, so you must `git pull` | Nothing else to do |
 
+<span style="color:salmon">To prevent merge conflicts from reaching GitLab at all, merge the latest `main` into your feature branch locally **before** you open a merge request.</span>
 
-## Activity 8: Git Rebase
+- Only use `git merge` to bring `main` **into** your feature branch. Never merge your feature branch into `main` with `git merge`. That should always go through a merge request
+- If you get lost in the middle of a merge, run `git merge --abort` to go back to how things were before
+
+<br>
+
+## Activity 5: Merging the Merge Request
+
+> Repo: `minions-visitorship`
+>
+> You are the **Reviewer / Assignee** in this activity, for the merge request you reviewed.
+>
+> We will go one at a time, starting from Participant 1's merge request, then 2, 3 and 4.
+
+#### a. Merge the merge request
+- Open the merge request you reviewed. It should be approved, and no longer blocked
+- Before clicking `Merge`, look at the options in the merge section:
+
+    ![Merge options](../../assets/s5-merge-options.png)
+
+  - Tick `Delete source branch`. Once merged, the feature branch is no longer needed, so GitLab deletes it for you <span style="color:skyblue">(as mentioned in Session 3, Activity 7)</span>
+  - Leave `Squash commits` unticked. This would combine all the commits on the branch into 1 commit on `main`. Some teams prefer this to keep the commit history of `main` short
+- Click `Merge`
+- Let the next participant know they can go ahead
+
+#### b. Everyone: update your local `main`
+- Once all four merge requests have been merged:
+  - Run `git switch main`
+  - Run `git pull`
+- Open `session3_lab/features.py`. All four functions now have their author's docstring and print line
+- Run `git log --oneline --graph`
+  - You should see each merge request joining `main` at its own merge commit
+
+    ![Commit history after merging](../../assets/s5-log-graph.png)
+
+#### c. Delete your local feature branch
+- Your feature branch was deleted on GitLab, but your local copy is still there
+- Run `git branch -d p<N>-mr`
+  - This works as the branch has already been merged into `main`
+- Run `git fetch --prune` to also clear Git's record of the remote branches that were deleted
+
+<hr>
+
+<span style="color:salmon">The full workflow: branch off `main` → commit → push → open a merge request → review → address feedback → merge `main` in and fix any conflicts → merge the merge request → everyone pulls `main`</span>
+
+<br>
+
+## Activity 6: Git Rebase (Optional)
 
 > - In session 2, we went through `git pull --rebase` and `git pull --no-rebase`
 > - Both combine your local commits with new commits from the remote, when the two have diverged:
@@ -122,8 +409,68 @@ git commit
 >     - For example, on a feature branch, `git rebase main` replays your feature branch's commits on top of the latest `main`. It is an alternative to `git merge main` for bringing your branch up to date
 >     - Only rebase commits you have **NOT** pushed to remote yet. Never rebase a branch your teammates are also working on, or their history will no longer match GitLab's (a git mess!)
 
+> Repo: `minions-visitorship`
+> Branches: `teammate-p<N>`, `rebase-p<N>`, `merge-p<N>` (all created from the `s4` branch from Session 4)
+
+#### a. Pretend a teammate's work was merged first
+- Run `git switch s4`
+- Run `git switch -c teammate-p<N> s4`
+- Create a new file `session4_lab/teammate_p<N>.md` and type anything in it
+- Run `git add .`
+- Run `git commit -m "docs: add teammate notes"`
+
+#### b. Do your own work and push it
+- Run `git switch -c rebase-p<N> s4`
+- Create a new file `session4_lab/feature_p<N>.md` and type anything in it, then stage and commit it with `git commit -m "feat: add feature file"`
+- Add another line to the file, then stage and commit it with `git commit -m "feat: extend feature file"`
+- Run `git push -u origin rebase-p<N>` <span style="color:skyblue">(as if you were backing up your work)</span>
+- Run `git log --oneline --graph teammate-p<N> rebase-p<N>`
+  - You should see both branches splitting from the same commit:
+
+    ![Branches before rebasing](../../assets/s5-rebase-graph-before.png)
+
+#### c. Try merging (on a copy of your branch)
+- Run `git switch -c merge-p<N> rebase-p<N>`
+- Run `git merge teammate-p<N>`
+  - nano opens with a pre-filled merge message. Save and exit to accept it
+- Run `git log --oneline --graph`
+  - The history splits and joins back together at a merge commit
+
+#### d. Now try rebasing
+- Run `git switch rebase-p<N>`
+- Run `git log --oneline -n 2` and take note of the hashes of your 2 commits
+- Run `git rebase teammate-p<N>`
+  - You should see `Successfully rebased and updated refs/heads/rebase-p<N>.`
+- Run `git log --oneline --graph`
+
+    ![Branch after rebasing](../../assets/s5-rebase-graph-after.png)
+
+  - The history is now a straight line, with your 2 commits on top of the teammate's commit
+  - Your commits have the same messages and changes, but **different hashes**. Rebasing created new copies of them
+
+#### e. Why you shouldn't rebase commits you have already pushed
+- Run `git push`
+  - You should see:
+
+    ![Push rejected after rebasing](../../assets/s5-rebase-push-rejected.png)
+
+- Run `git status`. It says your branch and `origin/rebase-p<N>` have diverged
+  - GitLab still has your old commits, while your branch now has new copies of them. The only way to push now is to force push, which would cause a git mess for anyone else who had pulled the branch
+  - Note: If a branch is only ever used by you, some teams do rebase it and push with `git push --force-with-lease` (Session 4, Activity 6). Never do this on a shared branch
+
+#### f. Clean up
+- Run `git switch main`
+- Run `git push origin -d rebase-p<N>` to delete the branch on GitLab
+- Run `git branch -D teammate-p<N> rebase-p<N> merge-p<N>` to delete your local branches
+
+<hr>
+
+- `git merge main` keeps your commits as they are, and adds a merge commit. It is safe to use on branches you have already pushed
+- `git rebase main` replaces your commits with new copies, and keeps the history in a straight line. Only use it on commits you have not pushed
+- If there is a conflict during a rebase, resolve it as usual, run `git add`, then run `git rebase --continue` instead of `git commit` (or `git rebase --abort` to cancel)
+
 <br>
 
 <hr>
-<h1 align="center">End of Session 4</h1>
+<h1 align="center">End of Session 5</h1>
 <hr>
