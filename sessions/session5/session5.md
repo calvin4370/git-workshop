@@ -1,34 +1,3 @@
-<!--
-FACILITATOR PREP (hidden when rendered)
-
-Before the session:
-1. GitLab → Settings → Repository → Protected branches → `main`:
-     Allowed to merge: Developers + Maintainers   (so participants can merge MRs in Activity 5)
-     Allowed to push:  No one                     (so nobody can push straight to main)
-2. GitLab → Settings → Merge requests: check Merge method = "Merge commit". Note whether approvals are required.
-3. Check that `session3_lab/features.py` on `main` still has `return` in all four `participant<N>()` functions
-   (participants branch `p<N>-mr` off main and replace their own `return`).
-4. Delete leftover Session 4 branches on GitLab (`revert-p<N>`, `notes-p<N>`).
-5. Prepare the Activity 4 conflict, but don't merge it yet:
-     git switch main && git pull
-     git switch -c facilitator/s5-return-none
-     # in session3_lab/features.py, change all 4 `return` lines to `return None`
-     git add session3_lab/features.py
-     git commit -m "refactor(features): return None explicitly"
-     git push -u origin facilitator/s5-return-none
-   Open its MR into main. Leave it open.
-
-During the session:
-- Activity 4: merge the `facilitator/s5-return-none` MR. Do NOT let any participant MR be merged before this.
-
-Screenshots to take (placeholders below point to ../../assets/s5-*.png):
-  s5-new-mr.png, s5-mr-overview.png, s5-review-comment.png, s5-switch-review.png, s5-mr-new-commit.png,
-  s5-merge-blocked.png, s5-gitlab-resolve.png, s5-merge-conflict.png, s5-mr-unblocked.png, s5-merge-options.png,
-  s5-log-graph.png, s5-rebase-graph-before.png, s5-rebase-graph-after.png, s5-rebase-push-rejected.png
-
-Est. timing: Setup 5m, A1 15m, A2 20m, A3 15m, A4 25m, A5 15m = ~1h40m (+25m with optional A6)
--->
-
 # Session 5: Merge Requests and Code Review
 
 ### Reference Table
@@ -136,8 +105,8 @@ The workflow for doing this is as follows:
 - Run `git switch -c p<N>-mr main`, where `<N>` is your participant number
 
 #### c. Make a change, then commit and push it
-- Open `session3_lab/features.py` and replace `return` in **your** function (`participant<N>()`) with a line of your own e.g. `print("<your name> was here")`
-- Run `git add session3_lab/features.py`
+- Open `session5_lab/features.py` and replace `return` in **your** function (`participant<N>()`) with a line of your own e.g. `print("<your name> was here")`
+- Run `git add session5_lab/features.py`
 - Run `git commit -m "feat(features): update participant<N>"`
 - Run `git push -u origin p<N>-mr` <span style="color:skyblue">(the first push of a new branch, so we need `-u origin <branch>`)</span>
 
@@ -156,6 +125,8 @@ The workflow for doing this is as follows:
 > Branch: `p<N>-mr`
 >
 > You are the **Author** in this activity.
+
+> **Facilitator:** From here until Activity 4, make sure **nobody merges any merge request**, including the `facilitator/s5-return-none` one. If anything is merged into `main` before Activity 4, the merge conflicts in Activity 4 will not turn out as planned.
 
 #### a. Start a new merge request
 - Go to the `minions-visitorship` repo on GitLab
@@ -180,7 +151,7 @@ The workflow for doing this is as follows:
     Session 5 practice.
 
     ## How to test
-    Run `python session3_lab/features.py`. It should run without errors.
+    Run `python session5_lab/features.py`. It should print my message.
     ```
 - Reviewer: set it to the participant **after** you
 - Assignee: also set it to your reviewer. This sends them a notification, and they will merge it later in Activity 5
@@ -228,8 +199,9 @@ Reading the code is not always enough. As a reviewer, you should also check that
     ```
 
   - You now have a local copy of their branch <span style="color:skyblue">(this is the same as Session 2, Activity 7)</span>
-- Run `python session3_lab/features.py`
-  - If no error shows up, the code runs
+- Run `python session5_lab/features.py`
+  - You should see their message printed e.g. `Participant 1 was here`
+  - The other three functions still just `return`, so they print nothing
 - Run `git switch p<N>-mr` to switch back to your own branch
 
 #### c. Don't approve yet
@@ -248,13 +220,13 @@ Reading the code is not always enough. As a reviewer, you should also check that
 - Open your merge request on GitLab. Your reviewer's comment is in the `Overview` tab
 
 #### b. Make the change, then commit and push
-- Open `session3_lab/features.py` and add a docstring to **your** function, as the first line inside it:
+- Open `session5_lab/features.py` and add a docstring to **your** function, as the first line inside it:
     ```python
     def participant<N>():
         """Print a message from participant <N>."""
         print("<your name> was here")
     ```
-- Run `git add session3_lab/features.py`
+- Run `git add session5_lab/features.py`
 - Run `git commit -m "docs(features): add docstring to participant<N>"`
 - Run `git push`
 
@@ -277,7 +249,9 @@ Reading the code is not always enough. As a reviewer, you should also check that
 >
 > While your merge request was being reviewed, a teammate's merge request was merged into `main`. It changed the **same lines** you changed, so your merge request now has a merge conflict.
 >
-> I will now merge a merge request into `main` that changes `return` to `return None` in all four `participant<N>()` functions in `session3_lab/features.py`. Since each of you changed your own function, everyone will get a merge conflict on exactly one line.
+> I will now merge a merge request into `main` that changes `return` to `return None` in all four `participant<N>()` functions in `session5_lab/features.py`. Since each of you changed your own function, everyone will get a merge conflict on exactly one line.
+
+> **Facilitator:** Merge the `facilitator/s5-return-none` merge request on GitLab now. Once it is merged, tell everyone to refresh their merge request.
 
 #### a. See the blocked merge request
 - Refresh your merge request on GitLab
@@ -314,12 +288,12 @@ Watch as I resolve the conflict in my merge request on GitLab:
   - You should see:
 
     ```
-    Auto-merging session3_lab/features.py
-    CONFLICT (content): Merge conflict in session3_lab/features.py
+    Auto-merging session5_lab/features.py
+    CONFLICT (content): Merge conflict in session5_lab/features.py
     Automatic merge failed; fix conflicts and then commit the result.
     ```
 
-- Open `session3_lab/features.py`. Only **your** function has a conflict, as the other three functions were merged automatically:
+- Open `session5_lab/features.py`. Only **your** function has a conflict, as the other three functions were merged automatically:
     ```python
     def participant1():
         return None
@@ -335,8 +309,8 @@ Watch as I resolve the conflict in my merge request on GitLab:
     ```
 - Keep your version, and delete all the conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`)
   - In VSCode, you can click `Accept Current Change` above the conflict instead
-- Save the file, and run `python session3_lab/features.py` to check it still works
-- Run `git add session3_lab/features.py`
+- Save the file, and run `python session5_lab/features.py` to check it still works. It should still print your message
+- Run `git add session5_lab/features.py`
 - Run `git commit`
   - nano opens with a pre-filled message `Merge branch 'main' into p<N>-mr`. Save and exit to accept it
 - Run `git push`
@@ -383,7 +357,8 @@ Watch as I resolve the conflict in my merge request on GitLab:
 - Once all four merge requests have been merged:
   - Run `git switch main`
   - Run `git pull`
-- Open `session3_lab/features.py`. All four functions now have their author's docstring and print line
+- Open `session5_lab/features.py`. All four functions now have their author's docstring and print line
+- Run `python session5_lab/features.py`. All four messages are printed, one from each of you
 - Run `git log --oneline --graph`
   - With 4 merge requests merged, the lines get tangled and hard to read
 - Run `git log --oneline --first-parent` instead
@@ -419,29 +394,30 @@ Watch as I resolve the conflict in my merge request on GitLab:
 >     - Only rebase commits you have **NOT** pushed to remote yet. Never rebase a branch your teammates are also working on, or their history will no longer match GitLab's (a git mess!)
 
 > Repo: `minions-visitorship`
-> Branches: `teammate-p<N>`, `rebase-p<N>`, `merge-p<N>` (all created from the `s4` branch from Session 4)
+> Branches: `teammate-p<N>`, `rebase-p<N>`, `merge-p<N>` (all created from `main`)
 
 #### a. Pretend a teammate's work was merged first
-- Run `git switch s4`
-- Run `git switch -c teammate-p<N> s4`
-- Create a new file `session4_lab/teammate_p<N>.md` and type anything in it
+- Run `git switch main`
+- Run `git pull` to make sure your local `main` is up to date
+- Run `git switch -c teammate-p<N> main`
+- Create a new file `session5_lab/teammate_p<N>.md` and type anything in it
 - Run `git add .`
 - Run `git commit -m "docs: add teammate notes"`
 
 #### b. Do your own work and push it
-- Run `git switch -c rebase-p<N> s4`
-- Create a new file `session4_lab/feature_p<N>.md` and type anything in it, then stage and commit it with `git commit -m "feat: add feature file"`
+- Run `git switch -c rebase-p<N> main`
+- Create a new file `session5_lab/feature_p<N>.md` and type anything in it, then stage and commit it with `git commit -m "feat: add feature file"`
 - Add another line to the file, then stage and commit it with `git commit -m "feat: extend feature file"`
 - Run `git push -u origin rebase-p<N>` <span style="color:skyblue">(as if you were backing up your work)</span>
 - Run `git log --oneline --graph teammate-p<N> rebase-p<N>`
-  - You should see both branches splitting from the same commit:
+  - At the top, you should see both branches splitting from the same commit (the latest commit on `main`):
 
     ```
     * 43168a2 docs: add teammate notes
     | * e952bf3 feat: extend feature file
     | * c43bd9e feat: add feature file
     |/
-    * c171082 fix(config): change YEAR to 2023
+    *   196d8b0 Merge branch 'p4-mr' into 'main'
     ```
 
 #### c. Try merging (on a copy of your branch)
