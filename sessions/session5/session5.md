@@ -428,6 +428,20 @@ Watch as I resolve the conflict in my merge request on GitLab:
   - The history splits and joins back together at a merge commit
 
 #### d. Now try rebasing
+> ```
+> git rebase <base-branch>
+> ```
+>
+> This moves your **current** branch so that it starts from the latest commit on `<base-branch>`. Git:
+> 1. Finds the commit where your branch and `<base-branch>` split
+> 2. Sets aside the commits on your branch since then
+> 3. Moves your branch to the latest commit on `<base-branch>`
+> 4. Replays your commits on top of it, one by one, in their original order
+>
+> - The commits from `<base-branch>` come first, and your commits come after them
+> - Only your current branch changes. `<base-branch>` is not touched
+> - Always switch to the branch you want to move **first**, then name the branch you want to move it onto. Running it the other way round would move the wrong branch
+
 - Run `git switch rebase-p<N>`
 - Run `git log --oneline -n 2` and take note of the hashes of your 2 commits
 - Run `git rebase teammate-p<N>`
