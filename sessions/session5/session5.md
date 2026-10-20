@@ -54,6 +54,10 @@
       <td><code>git rebase &lt;branch&gt;</code></td>
       <td>Replay your current branch's commits on top of <code>&lt;branch&gt;</code> (Activity 6)</td>
     </tr>
+    <tr>
+      <td><code>git rebase -i HEAD~&lt;n&gt;</code><br><code>git rebase --abort</code></td>
+      <td>Tidy up your last <code>&lt;n&gt;</code> commits: squash, fixup, reword or drop them (Activity 7)<br>Cancel a rebase in progress</td>
+    </tr>
   </tbody>
 </table>
 
@@ -480,6 +484,109 @@ Watch as I resolve the conflict in my merge request on GitLab:
 - `git merge main` keeps your commits as they are, and adds a merge commit. It is safe to use on branches you have already pushed
 - `git rebase main` replaces your commits with new copies, and keeps the history in a straight line. Only use it on commits you have not pushed
 - If there is a conflict during a rebase, resolve it as usual, run `git add`, then run `git rebase --continue` instead of `git commit` (or `git rebase --abort` to cancel)
+
+<br>
+
+## Activity 7: Tidying Your Commits with Interactive Rebase (Optional)
+
+> Repo: `minions-visitorship`
+> Branch: `tidy-p<N>` (stays on your machine only, we will not push it)
+>
+> While working, you will often end up with messy commits like `wip` or `fix typo`. Before opening a merge request, you can tidy them up so your reviewer sees a clean, readable history.
+>
+> ```
+> git rebase -i HEAD~<n>
+> ```
+>
+> - `-i` stands for **interactive**. `HEAD~<n>` means "the last `<n>` commits"
+> - nano opens a to-do list with one line per commit, **oldest first** (the opposite order from `git log`)
+> - You change the word at the start of each line to tell Git what to do with that commit, then save and exit. Git then carries out the list from top to bottom
+>
+> Just like `git rebase`, this creates new commits with new hashes, so <span style="color:salmon">only use it on commits you have NOT pushed yet</span>
+
+#### a. Make some messy commits
+- Run `git switch main`
+- Run `git switch -c tidy-p<N> main`
+- Create a new file `session5_lab/tidy_p<N>.py` with:
+    ```python
+    def summary():
+        print("Summarising visits")
+    ```
+- Run `git add .`, then `git commit -m "feat: add summary function"`
+- Add a line `# TODO: tidy up` at the bottom of the file. Run `git add .`, then `git commit -m "wip"`
+- Change `visits` to `minion visits`. Run `git add .`, then `git commit -m "fix message"`
+- Run `git log --oneline -n 3`. You should see your 3 commits, newest at the top:
+    ```
+    57be115 fix message
+    c32171f wip
+    8697d4b feat: add summary function
+    ```
+
+#### b. Squash: combine several commits into one
+- Run `git rebase -i HEAD~3`
+- nano opens with your 3 commits, **oldest first**:
+    ```
+    pick 8697d4b feat: add summary function
+    pick c32171f wip
+    pick 57be115 fix message
+    ```
+  - Below the list, Git explains each command you can use. Lines starting with `#` are ignored
+- Change `pick` to `squash` on the 2nd and 3rd lines:
+    ```
+    pick 8697d4b feat: add summary function
+    squash c32171f wip
+    squash 57be115 fix message
+    ```
+  - `squash` combines that commit into the commit above it
+- Save and exit nano (`Ctrl + X`, `Y`, `Enter`)
+- A 2nd nano window opens, with all 3 commit messages combined. Delete the lines `wip` and `fix message`, so only `feat: add summary function` is left (you can leave the lines starting with `#`). Save and exit
+- You should see `Successfully rebased and updated refs/heads/tidy-p<N>.`
+- Run `git log --oneline -n 2`. Your 3 commits are now 1 commit, `feat: add summary function`
+
+#### c. Reword: change a commit message
+- Run `git rebase -i HEAD~1`
+- Change `pick` to `reword` on the only line. Save and exit
+- A 2nd nano window opens with the commit's current message. Change it to `feat(tidy): add summary function`. Save and exit
+- Run `git log --oneline -n 1`. The commit has its new message
+- Note: For your **last** commit only, `git commit --amend -m "<new message>"` (Session 1) does the same thing. `reword` works on any commit in the list
+
+#### d. Drop: delete a commit
+- Add a line `print("debug")` at the bottom of the file. Run `git add .`, then `git commit -m "debug: add print statement"`
+- Run `git rebase -i HEAD~1`
+- Change `pick` to `drop` on the only line. Save and exit
+- Run `git log --oneline -n 2`. The `debug: add print statement` commit is gone
+- Open `session5_lab/tidy_p<N>.py`. The `print("debug")` line is gone too
+  - Just like `git reset --hard` (Session 4), the changes in a dropped commit are thrown away. If you didn't mean to, you can get it back with `git reflog` (Session 4, Activity 5)
+
+#### e. Fixup: like squash, but keep only the first commit's message
+- Rename the function from `summary` to `summary_visits`. Run `git add .`, then `git commit -m "rename function"`
+- Run `git rebase -i HEAD~2`
+- Change `pick` to `fixup` on the 2nd line:
+    ```
+    pick a32dab9 feat(tidy): add summary function
+    fixup d27fe4a rename function
+    ```
+- Save and exit
+  - This time, no 2nd nano window opens. `fixup` combines the commit into the one above it, and simply throws away its message (`rename function`)
+- Run `git log --oneline -n 2`. There is still only 1 commit, `feat(tidy): add summary function`, and the file now has `summary_visits`
+
+#### f. Clean up
+- Run `git switch main`
+- Run `git branch -D tidy-p<N>`
+
+<hr>
+
+| Command | What it does to the commit |
+| --- | --- |
+| `pick` | Keep it as it is |
+| `squash` | Combine it into the commit above, and let you edit the combined message |
+| `fixup` | Combine it into the commit above, and keep only the above commit's message |
+| `reword` | Keep it, but change its message |
+| `drop` | Delete it, along with its changes |
+
+- If you get lost in the middle of an interactive rebase, run `git rebase --abort` to go back to how things were before
+- If you save the to-do list with every line deleted, Git does nothing (`error: nothing to do`)
+- GitLab's `Squash commits` option (Activity 5) combines **all** the commits in a merge request into 1 when it is merged. `git rebase -i` lets you choose exactly which commits to combine, rename or delete, **before** anyone reviews them
 
 <br>
 
