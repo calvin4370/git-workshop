@@ -3178,3 +3178,131 @@ Once all the merge requests have been merged:
     ```
 
 <hr>
+
+## Phase 7: Wrap-up
+
+### <u>Participant 2</u>
+
+#### 1. Create an issue
+- Title: `Document how to run the pipeline`
+- Description: `Add a How to Run section to the README.`
+
+#### 2. Write the section
+- Get the latest `final-main`, and add this section to the end of `README.md`:
+    ```
+    ## How to Run
+
+    1. Activate your virtual environment
+    2. Make sure your `.env` file has your SingStat API key
+    3. From the repo root, run `python main.py`
+    ```
+- Commit your changes, and push them
+
+#### 3. Oops, you pushed straight to `final-main`
+- You realise you committed and pushed straight to `final-main`, without a branch, issue or review. Your teammates may already have pulled it
+- Undo the commit on `final-main` safely, without rewriting its history, and push
+- Tell Participants 1 and 3 that you are done, so they can start
+
+#### 4. Do it properly this time
+- Create a branch for your issue from the latest `final-main`
+- Add the same `## How to Run` section to the end of `README.md` again, and commit your changes
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 3
+
+### <u>Participant 1</u>
+
+#### 1. Create an issue
+- Title: `Document the pipeline outputs`
+- Description: `Add an Outputs section to the README, listing everything the pipeline saves.`
+
+#### 2. Wait for Participant 2
+- Wait until Participant 2 tells you they have finished their step 3
+- Then create a branch for your issue from the latest `final-main`
+
+#### 3. Write the section
+- Add this section to the end of `README.md`:
+    ```
+    ## Outputs
+
+    Everything the pipeline produces is saved to `outputs/`, which is gitignored:
+
+    - `outputs/plots/`: a forecast vs actual plot for each model and museum
+    - `outputs/models/`: the trained models
+    - `outputs/reports/`: a report for each museum, with its best model
+    - `outputs/forecasts/`: each museum's forecast for Apr 2026 to Mar 2028
+    ```
+- Commit your changes
+
+#### 4. Open your merge request
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 2
+
+### <u>Participant 3</u>
+
+#### 1. Create an issue
+- Title: `Add docstrings to the src and models packages`
+- Description: `Add a docstring to src/__init__.py and models/__init__.py, describing what each package contains.`
+
+#### 2. Wait for Participant 2
+- Wait until Participant 2 tells you they have finished their step 3
+- Then create a branch for your issue from the latest `final-main`
+
+#### 3. Add the docstrings
+- `src/__init__.py` is currently empty. Add this line to it:
+    ```python
+    """Data, features, evaluation and output steps of the pipeline."""
+    ```
+- `models/__init__.py` is currently empty. Add this line to it:
+    ```python
+    """One module per forecasting model, each with its own train function."""
+    ```
+- Commit your changes
+
+#### 4. Open your merge request
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 1
+
+### <u>Everyone: End of Phase 7</u>
+
+#### 1. Merge the merge requests, one at a time
+Follow these steps in order. Wait for each step to be done before moving on to the next:
+
+1. **Participant 3:** review and merge Participant 2's merge request
+2. **Participant 1:** merge the latest `final-main` into your branch. You will get a conflict in `README.md`. Resolve it so that `README.md` ends with these 2 sections:
+    ```
+    ## How to Run
+
+    1. Activate your virtual environment
+    2. Make sure your `.env` file has your SingStat API key
+    3. From the repo root, run `python main.py`
+
+    ## Outputs
+
+    Everything the pipeline produces is saved to `outputs/`, which is gitignored:
+
+    - `outputs/plots/`: a forecast vs actual plot for each model and museum
+    - `outputs/models/`: the trained models
+    - `outputs/reports/`: a report for each museum, with its best model
+    - `outputs/forecasts/`: each museum's forecast for Apr 2026 to Mar 2028
+    ```
+
+    Then push your branch
+3. **Participant 2:** review and merge Participant 1's merge request
+4. **Participant 1:** review and merge Participant 3's merge request
+
+#### 2. Run the full pipeline
+- Get the latest `final-main`, and run the pipeline
+- You should see all 5 museums (ACM, IHC, MHC, NMS and TPM), each with all 7 models tuned (except the baseline), trained, evaluated, plotted and saved, followed by its report and forecast. At the very end:
+    ```
+
+    Pipeline finished: 7 models trained for each of 5 museums
+        Plots, saved models, reports and forecasts are in outputs/
+    ```
+
+#### 3. Check your work on GitLab
+- Go to the repo's `Issues` page. There should be no open issues left, as every merge request closed its issue
+- Look at the history of `final-main` on GitLab, or with `git log` (Session 1). Every change the 3 of you made is there, with its merge request, review and issue
+
+<hr>
+<h1 align="center">End of Session 6</h1>
+<hr>
