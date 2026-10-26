@@ -604,3 +604,373 @@ A model is trained on past data, but real-world data changes over time e.g. visi
 
 > Repo: `minions-visitorship`
 > Branch: `final-main` (consider this the "main" branch for the project)
+
+In this final exam, the 3 of you will build a project together from scratch, applying everything we have learnt throughout the workshop.
+
+- For the sake of time, all the content and code you need is provided below. The point of this exam is purely on the Git concepts, not the code itself
+- Each step only tells you **what** needs to be done, but **not** the Git or terminal commands to do it. Refer back to the reference tables and activities from Sessions 1 to 6 when you get stuck
+- I will be guiding you throughout, but without handholding
+
+#### The project
+A simplified version of a museum visitorship forecasting project, except the visitors are all minions.
+
+- It forecasts monthly visitorship for 5 NHB museums: ACM, IHC, MHC, NMS and TPM
+- It trains a baseline (the historical monthly average) and 6 models for each museum: SARIMAX, Holt-Winters, SVR, Random Forest, XGBoost and LSTM
+- Every function only **prints** what it would do, as the code is not the point here
+
+`final-main` currently only contains a `README.md` with the project's title. By the end of the exam, the repo will look like this:
+
+```
+(repo root)
+├── README.md
+├── requirements.txt
+├── .gitignore
+├── .env                 ← gitignored
+├── config.py
+├── main.py
+├── src/
+│   ├── __init__.py
+│   ├── fetch_singstat.py
+│   ├── clean_data.py
+│   ├── split.py
+│   ├── features.py
+│   ├── evaluate.py
+│   ├── tune.py
+│   ├── plots.py
+│   ├── report.py
+│   ├── save_models.py
+│   └── forecast.py
+├── models/
+│   ├── __init__.py
+│   ├── baseline.py
+│   ├── sarimax.py
+│   ├── holt_winters.py
+│   ├── svr.py
+│   ├── rf.py
+│   ├── xgboost_model.py
+│   └── lstm.py
+└── outputs/             ← gitignored (plots, report, saved models)
+```
+
+#### How each task works
+Unless told otherwise, follow the standard workflow for every task:
+
+1. Create an issue for your task on GitLab, using the title and description provided
+2. Create a branch off the latest `final-main`, named following the branch naming convention, and including your issue number
+3. Make your changes, committing as you go. Keep your commits atomic, and write multi-line commit messages following the commit convention, referencing your issue
+4. Push your branch, and open a merge request into `final-main` that closes your issue
+5. Set your reviewer as both the Reviewer and Assignee of your merge request
+6. **As a reviewer:** check the code, the commit messages and the merge request, run the code where possible, then approve and merge it. There is no need to delete branches
+
+#### Rules
+- The exam is split into phases. Each phase has tasks for each participant. Wait for my signal before starting the next phase
+- Each phase ends with step-by-step instructions on who merges which merge request, and in what order
+- Before your merge request is merged, make sure your branch has the latest `final-main` merged into it, and resolve any merge conflicts
+- At the end of each phase, everyone gets the latest `final-main` and runs the pipeline. The expected output is provided
+- Some phases include bugs. The phase will tell you who notices the bug and opens an issue for it, who fixes it, and provides the fix to copy
+
+<hr>
+
+## Phase 1: Project Setup
+
+### <u>Participant 1</u>
+
+#### 1. Create an issue
+- Title: `Set up pipeline skeleton with baseline model`
+- Description: `Create config.py, main.py and the baseline model (historical monthly average), so the pipeline trains the baseline for ACM, IHC and MHC.`
+
+#### 2. Start writing the config
+- Get the latest `final-main`, and start working straight away by creating `config.py`:
+    ```python
+    """Settings for the minions visitorship forecasting pipeline."""
+
+    # Museums to forecast visitorship for
+    MUSEUMS = ["ACM", "IHC", "MHC"]
+
+    # Models to train for each museum
+    MODELS = ["baseline"]
+
+    # Features used by the models
+    FEATURES = []
+    ```
+
+#### 3. Oops, you are still on `final-main`
+- You realise you haven't created a branch yet. Move your uncommitted work onto a new branch for your issue, without losing it
+- Commit `config.py`
+
+#### 4. Add the baseline model
+- Create an empty `models/__init__.py`
+- Create `models/baseline.py`:
+    ```python
+    """Baseline model: the historical monthly average."""
+    import time
+
+
+    def train_baseline(museum):
+        """Train the baseline model for one museum.
+
+        The baseline predicts each month's visitorship as the average visitorship
+        for that month in previous years. Every other model must beat it to be useful.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        print(f"Training baseline (historical monthly average) for {museum}")
+        time.sleep(0.2)  # Pretend to take time, like real training would
+    ```
+- Commit your changes
+
+#### 5. Add the pipeline
+- Create `main.py`:
+    ```python
+    """Run the minions visitorship forecasting pipeline."""
+    from config import MODELS, MUSEUMS
+    from models.baseline import train_baseline
+    from src.clean_data import clean_visitorship
+    from src.fetch_singstat import fetch_visitorship
+    from src.split import split_train_test
+
+
+    def main():
+        """Fetch, clean and split each museum's data, then train every model on it."""
+        for museum in MUSEUMS:
+            print(f"\n===== {museum} =====")
+            fetch_visitorship(museum)
+            clean_visitorship(museum)
+            split_train_test(museum)
+
+            for model in MODELS:
+                # Each model has its own training function in the models/ folder
+                if model == "baseline":
+                    train_baseline(museum)
+
+
+    if __name__ == "__main__":
+        main()
+    ```
+    - Note: `main.py` uses code from Participants 2 and 3, so it will only run once their merge requests have been merged
+- Commit your changes
+
+#### 6. Document the pipeline
+- Add this section to `README.md`:
+    ````
+    ## Pipeline
+
+    For each museum in `config.py`, `main.py`:
+
+    1. Fetches the monthly visitorship data from SingStat
+    2. Cleans the data
+    3. Splits it into training and test sets
+    4. Trains each model in `MODELS`
+
+    Run it from the repo root with `python main.py`
+    ````
+- Commit your changes
+
+#### 7. Open your merge request
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 2
+
+### <u>Participant 2</u>
+
+#### 1. Create an issue
+- Title: `Add requirements, .gitignore, and data cleaning and splitting`
+- Description: `Add requirements.txt and .gitignore, and the functions to clean the data and split it into training and test sets.`
+
+#### 2. Start writing the requirements
+- Get the latest `final-main`, and start working straight away by creating `requirements.txt`:
+    ```
+    pandas==2.3.3
+    numpy==2.3.4
+    matplotlib==3.10.7
+    seaborn==0.13.2
+    python-dotenv==1.2.4
+    ```
+
+#### 3. Oops, you are still on `final-main`
+- You realise you haven't created a branch yet. Move your uncommitted work onto a new branch for your issue, without losing it
+- Commit `requirements.txt`
+
+#### 4. Ignore files that should never be committed
+- Create `.gitignore`:
+    ```
+    # Virtual environment
+    .venv/
+
+    # Python cache
+    __pycache__/
+
+    # Pipeline outputs (plots, reports and saved models)
+    outputs/
+    ```
+- Commit your changes
+
+#### 5. Add data cleaning and splitting
+- Create an empty `src/__init__.py`
+- Create `src/clean_data.py`:
+    ```python
+    """Clean the raw visitorship data."""
+    import time
+
+
+    def clean_visitorship(museum):
+        """Clean one museum's monthly visitorship data.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        # Months when a museum was closed have zero visitors, and would mislead the models
+        print(f"Cleaning {museum} data: removing missing months and closures")
+        time.sleep(0.2)  # Pretend to take time, like real cleaning would
+    ```
+- Create `src/split.py`:
+    ```python
+    """Split the data into training and test sets."""
+    import time
+
+
+    def split_train_test(museum):
+        """Split one museum's data into a training set and a test set by date.
+
+        Time series must be split by date, not randomly, so the models are always
+        tested on months that come after the months they were trained on.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        print(f"Splitting {museum} data: train on Jan 2014 to Mar 2024, test on Apr 2024 to Mar 2026")
+        time.sleep(0.2)  # Pretend to take time, like real splitting would
+    ```
+- Commit your changes. Keep them atomic: one commit for cleaning, and one for splitting
+
+#### 6. Document the setup
+- Add this section to `README.md`:
+    ```
+    ## Setup
+
+    1. Create and activate a virtual environment
+    2. Install the packages in `requirements.txt`
+    3. Create a `.env` file with your SingStat API key (see Data)
+    ```
+- Commit your changes
+
+#### 7. Open your merge request
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 3
+
+### <u>Participant 3</u>
+
+#### 1. Create an issue
+- Title: `Fetch visitorship data from the SingStat API`
+- Description: `Fetch each museum's monthly visitorship data from the SingStat API, reading the API key from a .env file that is never committed.`
+
+#### 2. Start writing the API call
+- Get the latest `final-main`, and start working straight away by creating an empty `src/__init__.py`, and `src/fetch_singstat.py`:
+    ```python
+    """Fetch monthly museum visitorship data from the SingStat API."""
+    import os
+    import time
+
+    from dotenv import load_dotenv
+
+    # Read the API key from the .env file, so it is never written in the code
+    load_dotenv()
+    API_KEY = os.getenv("SINGSTAT_API_KEY")
+
+
+    def fetch_visitorship(museum):
+        """Fetch one museum's monthly visitorship data from SingStat.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        if API_KEY is None:
+            print("Error: SINGSTAT_API_KEY not found. Add it to your .env file")
+            return
+        print(f"Fetching {museum} monthly visitorship from SingStat")
+        time.sleep(0.2)  # Pretend to take time, like a real API call would
+    ```
+
+#### 3. Oops, you are still on `final-main`
+- You realise you haven't created a branch yet. Move your uncommitted work onto a new branch for your issue, without losing it
+- Commit your changes
+
+#### 4. Store the API key safely
+- Create a `.env` file at the repo root, with the API key:
+    ```
+    SINGSTAT_API_KEY=minions-singstat-7f3a9c
+    ```
+- <span style="color:salmon">`.env` must never be committed.</span> Create `.gitignore` so that Git ignores it:
+    ```
+    # Secrets e.g. API keys
+    .env
+    ```
+- Check that `.env` no longer shows up as an untracked file, then commit `.gitignore` only
+
+#### 5. Document the data source
+- Add this section to `README.md`:
+    ````
+    ## Data
+
+    Monthly visitorship for each museum is fetched from the SingStat API in `src/fetch_singstat.py`.
+
+    The API key is read from a `.env` file, which is gitignored and must never be committed:
+
+    ```
+    SINGSTAT_API_KEY=<your key>
+    ```
+    ````
+- Commit your changes
+
+#### 6. Open your merge request
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 1
+
+### <u>Everyone: End of Phase 1</u>
+
+#### 1. Merge the merge requests, one at a time
+Follow these steps in order. Wait for each step to be done before moving on to the next:
+
+1. **Participant 3:** review and merge Participant 2's merge request
+2. **Participant 3:** merge the latest `final-main` into your branch, and resolve the conflicts:
+    - `.gitignore`: Participant 2 also created one. Keep everything from both versions
+    - `README.md`: keep both your section and Participant 2's section
+
+    Then push your branch
+3. **Participant 1:** review and merge Participant 3's merge request
+4. **Participant 1:** merge the latest `final-main` into your branch, and resolve the conflict in `README.md`, keeping everyone's sections. Check that the pipeline now runs, then push your branch
+5. **Participant 2:** review and merge Participant 1's merge request
+
+#### 2. Run the pipeline
+Once all 3 merge requests have been merged:
+
+- Get the latest `final-main`
+- Create a virtual environment, and install the packages in `requirements.txt` (Session 6, Activities 5 and 6)
+- Create your own `.env` file at the repo root, with the API key:
+    ```
+    SINGSTAT_API_KEY=minions-singstat-7f3a9c
+    ```
+- Run the pipeline. You should see:
+    ```
+
+    ===== ACM =====
+    Fetching ACM monthly visitorship from SingStat
+    Cleaning ACM data: removing missing months and closures
+    Splitting ACM data: train on Jan 2014 to Mar 2024, test on Apr 2024 to Mar 2026
+    Training baseline (historical monthly average) for ACM
+
+    ===== IHC =====
+    Fetching IHC monthly visitorship from SingStat
+    Cleaning IHC data: removing missing months and closures
+    Splitting IHC data: train on Jan 2014 to Mar 2024, test on Apr 2024 to Mar 2026
+    Training baseline (historical monthly average) for IHC
+
+    ===== MHC =====
+    Fetching MHC monthly visitorship from SingStat
+    Cleaning MHC data: removing missing months and closures
+    Splitting MHC data: train on Jan 2014 to Mar 2024, test on Apr 2024 to Mar 2026
+    Training baseline (historical monthly average) for MHC
+    ```
+    - If you see `Error: SINGSTAT_API_KEY not found`, check your `.env` file
+
+<hr>
