@@ -631,15 +631,18 @@ A simplified version of a museum visitorship forecasting project, except the vis
 ├── src/
 │   ├── __init__.py
 │   ├── fetch_singstat.py
+│   ├── singstat_series.py
 │   ├── clean_data.py
+│   ├── closures.py
 │   ├── split.py
 │   ├── features.py
-│   ├── evaluate.py
 │   ├── tune.py
+│   ├── evaluate.py
 │   ├── plots.py
-│   ├── report.py
 │   ├── save_models.py
-│   └── forecast.py
+│   ├── report.py
+│   ├── forecast.py
+│   └── summary.py
 ├── models/
 │   ├── __init__.py
 │   ├── baseline.py
@@ -649,7 +652,7 @@ A simplified version of a museum visitorship forecasting project, except the vis
 │   ├── rf.py
 │   ├── xgboost_model.py
 │   └── lstm.py
-└── outputs/             ← gitignored (plots, report, saved models)
+└── outputs/             ← gitignored (plots, saved models, reports, forecasts)
 ```
 
 #### How each task works
@@ -665,7 +668,7 @@ Unless told otherwise, follow the standard workflow for every task:
 #### Rules
 - The exam is split into phases. Each phase has tasks for each participant. Wait for my signal before starting the next phase
 - Each phase ends with step-by-step instructions on who merges which merge request, and in what order
-- Before your merge request is merged, make sure your branch has the latest `final-main` merged into it, and resolve any merge conflicts
+- When `final-main` has changed since you created your branch, these steps will tell you to merge the latest `final-main` into your branch, and exactly how to resolve any merge conflicts
 - At the end of each phase, everyone gets the latest `final-main` and runs the pipeline. The expected output is provided
 - Some phases include bugs. The phase will tell you who notices the bug and opens an issue for it, who fixes it, and provides the fix to copy
 
@@ -720,7 +723,15 @@ Unless told otherwise, follow the standard workflow for every task:
     ```
 - Commit your changes
 
-#### 5. Add the pipeline
+#### 5. Ignore Python's cache files
+- Running Python creates `__pycache__/` folders, which should never be committed. Create `.gitignore`:
+    ```
+    # Python cache
+    __pycache__/
+    ```
+- Commit your changes
+
+#### 6. Add the pipeline
 - Create `main.py`:
     ```python
     """Run the minions visitorship forecasting pipeline."""
@@ -751,7 +762,7 @@ Unless told otherwise, follow the standard workflow for every task:
     - Note: `main.py` uses code from Participants 2 and 3, so it will only run once their merge requests have been merged
 - Commit your changes
 
-#### 6. Document the pipeline
+#### 7. Document the pipeline
 - Add this section to `README.md`:
     ````
     ## Pipeline
@@ -767,7 +778,7 @@ Unless told otherwise, follow the standard workflow for every task:
     ````
 - Commit your changes
 
-#### 7. Open your merge request
+#### 8. Open your merge request
 - Push your branch, and open a merge request into `final-main` that closes your issue
 - Your reviewer and assignee is Participant 2
 
@@ -873,9 +884,11 @@ Unless told otherwise, follow the standard workflow for every task:
 
     from dotenv import load_dotenv
 
+    from config import API_KEY_NAME
+
     # Read the API key from the .env file, so it is never written in the code
     load_dotenv()
-    API_KEY = os.getenv("SINGSTAT_API_KEY")
+    API_KEY = os.getenv(API_KEY_NAME)
 
 
     def fetch_visitorship(museum):
@@ -907,7 +920,21 @@ Unless told otherwise, follow the standard workflow for every task:
     ```
 - Check that `.env` no longer shows up as an untracked file, then commit `.gitignore` only
 
-#### 5. Document the data source
+#### 5. Add the setting and the package you need
+- Create `config.py`:
+    ```python
+    """Settings for the minions visitorship forecasting pipeline."""
+
+    # Name of the variable in .env that holds the SingStat API key
+    API_KEY_NAME = "SINGSTAT_API_KEY"
+    ```
+- Create `requirements.txt`, as `src/fetch_singstat.py` needs the `python-dotenv` package:
+    ```
+    python-dotenv==1.2.4
+    ```
+- Commit your changes
+
+#### 6. Document the data source
 - Add this section to `README.md`:
     ````
     ## Data
@@ -922,7 +949,7 @@ Unless told otherwise, follow the standard workflow for every task:
     ````
 - Commit your changes
 
-#### 6. Open your merge request
+#### 7. Open your merge request
 - Push your branch, and open a merge request into `final-main` that closes your issue
 - Your reviewer and assignee is Participant 1
 
@@ -932,7 +959,7 @@ Unless told otherwise, follow the standard workflow for every task:
 Follow these steps in order. Wait for each step to be done before moving on to the next:
 
 1. **Participant 3:** review and merge Participant 2's merge request
-2. **Participant 3:** merge the latest `final-main` into your branch. You will get conflicts in 2 files. Resolve them so that:
+2. **Participant 3:** merge the latest `final-main` into your branch. You will get conflicts in 3 files. Resolve them so that:
     - `.gitignore` (Participant 2 also created one) looks like this:
     ```
     # Virtual environment
@@ -946,6 +973,14 @@ Follow these steps in order. Wait for each step to be done before moving on to t
 
     # Secrets e.g. API keys
     .env
+    ```
+    - `requirements.txt` (Participant 2 also created one) looks like this:
+    ```
+    pandas==2.3.3
+    numpy==2.3.4
+    matplotlib==3.10.7
+    seaborn==0.13.2
+    python-dotenv==1.2.4
     ```
     - `README.md` looks like this:
     ````
@@ -970,7 +1005,38 @@ Follow these steps in order. Wait for each step to be done before moving on to t
 
     Then push your branch
 3. **Participant 1:** review and merge Participant 3's merge request
-4. **Participant 1:** merge the latest `final-main` into your branch. You will get a conflict in `README.md`. Resolve it so that it looks like this:
+4. **Participant 1:** merge the latest `final-main` into your branch. You will get conflicts in 3 files. Resolve them so that:
+    - `config.py` (Participant 3 also created one) looks like this:
+    ```python
+    """Settings for the minions visitorship forecasting pipeline."""
+
+    # Museums to forecast visitorship for
+    MUSEUMS = ["ACM", "IHC", "MHC"]
+
+    # Models to train for each museum
+    MODELS = ["baseline"]
+
+    # Features used by the models
+    FEATURES = []
+
+    # Name of the variable in .env that holds the SingStat API key
+    API_KEY_NAME = "SINGSTAT_API_KEY"
+    ```
+    - `.gitignore` looks like this:
+    ```
+    # Virtual environment
+    .venv/
+
+    # Python cache
+    __pycache__/
+
+    # Pipeline outputs (plots, reports and saved models)
+    outputs/
+
+    # Secrets e.g. API keys
+    .env
+    ```
+    - `README.md` looks like this:
     ````
     # Minions Visitorship Forecasting
 
@@ -1853,6 +1919,13 @@ Once all 3 merge requests have been merged:
     ```python
     MUSEUMS = ["ACM", "IHC", "MHC", "NMS"]
     ```
+- Add this to the end of `config.py`:
+    ```python
+    # Months when each museum was closed, e.g. for renovation
+    CLOSURES = {
+        "NMS": "Jan 2021 to Jun 2021",
+    }
+    ```
 - Add this section to the end of `README.md`:
     ```
     ## Museums
@@ -1867,10 +1940,7 @@ Once all 3 merge requests have been merged:
     """Handle the months when a museum was closed."""
     import time
 
-    # Months when each museum was closed, e.g. for renovation
-    CLOSURES = {
-        "NMS": "Jan 2021 to Jun 2021",
-    }
+    from config import CLOSURES
 
 
     def remove_closures(museum):
@@ -1917,7 +1987,19 @@ Once all 3 merge requests have been merged:
 - Description: `Evaluate every model on the test set using RMSE and MAPE.`
 - Create a branch for your issue from the latest `final-main`
 
-#### 2. Add the evaluation
+#### 2. Add the setting and the package
+- Add this to the end of `config.py`:
+    ```python
+    # Metrics used to evaluate the models on the test set
+    METRICS = ["RMSE", "MAPE"]
+    ```
+- Add this line to the end of `requirements.txt`, as the metrics are calculated with `scikit-learn`:
+    ```
+    scikit-learn==1.7.2
+    ```
+- Commit your changes
+
+#### 3. Add the evaluation
 - Create `src/evaluate.py`:
     ```python
     """Evaluate the models' forecasts."""
@@ -1941,7 +2023,7 @@ Once all 3 merge requests have been merged:
     ```
 - Commit your changes
 
-#### 3. Evaluate every model in the pipeline
+#### 4. Evaluate every model in the pipeline
 - In `main.py`, add this import right after `from src.clean_data import clean_visitorship`:
     ```python
     from src.evaluate import evaluate_model
@@ -1952,7 +2034,7 @@ Once all 3 merge requests have been merged:
     ```
 - Commit your changes
 
-#### 4. Document the evaluation
+#### 5. Document the evaluation
 - Add this section to the end of `README.md`:
     ```
     ## Evaluation
@@ -1964,7 +2046,7 @@ Once all 3 merge requests have been merged:
     ```
 - Commit your changes
 
-#### 5. Open your merge request
+#### 6. Open your merge request
 - Push your branch, and open a merge request into `final-main` that closes your issue
 - Your reviewer and assignee is Participant 1
 
@@ -1980,6 +2062,21 @@ Once all 3 merge requests have been merged:
     ```python
     MUSEUMS = ["ACM", "IHC", "MHC", "TPM"]
     ```
+- Add this to the end of `config.py`:
+    ```python
+    # SingStat table ID for each museum's monthly visitorship
+    SERIES_IDS = {
+        "ACM": "M650561",
+        "IHC": "M650562",
+        "MHC": "M650563",
+        "NMS": "M650564",
+        "TPM": "M650565",
+    }
+    ```
+- Add this line to the end of `requirements.txt`, as the SingStat API is called with the `requests` package:
+    ```
+    requests==2.32.5
+    ```
 - Add this section to the end of `README.md`:
     ```
     ## Museums
@@ -1991,16 +2088,8 @@ Once all 3 merge requests have been merged:
 #### 3. Fetch each museum from its own SingStat table
 - Create `src/singstat_series.py`:
     ```python
-    """SingStat table IDs for each museum's monthly visitorship."""
-
-    # Each museum's visitorship is published in a different SingStat table
-    SERIES_IDS = {
-        "ACM": "M650561",
-        "IHC": "M650562",
-        "MHC": "M650563",
-        "NMS": "M650564",
-        "TPM": "M650565",
-    }
+    """Get the SingStat table ID for each museum's monthly visitorship."""
+    from config import SERIES_IDS
 
 
     def get_series_id(museum):
@@ -2022,11 +2111,12 @@ Once all 3 merge requests have been merged:
 
     from dotenv import load_dotenv
 
+    from config import API_KEY_NAME
     from src.singstat_series import get_series_id
 
     # Read the API key from the .env file, so it is never written in the code
     load_dotenv()
-    API_KEY = os.getenv("SINGSTAT_API_KEY")
+    API_KEY = os.getenv(API_KEY_NAME)
 
 
     def fetch_visitorship(museum):
@@ -2053,27 +2143,91 @@ Once all 3 merge requests have been merged:
 #### 1. Merge the merge requests, one at a time
 Follow these steps in order. Wait for each step to be done before moving on to the next:
 
-1. **Participant 2:** review and merge Participant 3's merge request
-2. **Participant 2:** merge the latest `final-main` into your branch. You will get a conflict in `README.md`. Resolve it so that `README.md` ends with these 2 sections:
+1. **Participant 3:** review and merge Participant 1's merge request
+2. **Participant 3:** merge the latest `final-main` into your branch. You will get conflicts in 2 files. Resolve them so that:
+    - `config.py` looks like this:
+    ```python
+    """Settings for the minions visitorship forecasting pipeline."""
+
+    # Museums to forecast visitorship for
+    MUSEUMS = ["ACM", "IHC", "MHC", "NMS", "TPM"]
+
+    # Models to train for each museum
+    MODELS = ["baseline", "sarimax", "holt_winters", "svr", "rf", "xgboost", "lstm"]
+
+    # Features used by the models
+    FEATURES = ["lag_1", "lag_2", "lag_12", "monthly_avg", "sin_month", "cos_month"]
+
+    # Name of the variable in .env that holds the SingStat API key
+    API_KEY_NAME = "SINGSTAT_API_KEY"
+
+    # Months when each museum was closed, e.g. for renovation
+    CLOSURES = {
+        "NMS": "Jan 2021 to Jun 2021",
+    }
+
+    # SingStat table ID for each museum's monthly visitorship
+    SERIES_IDS = {
+        "ACM": "M650561",
+        "IHC": "M650562",
+        "MHC": "M650563",
+        "NMS": "M650564",
+        "TPM": "M650565",
+    }
+    ```
+    - `README.md` ends with this section:
     ```
     ## Museums
 
+    - `NMS`: National Museum of Singapore
     - `TPM`: The Peranakan Museum
-
-    ## Evaluation
-
-    Each model is evaluated on the test set (Apr 2024 to Mar 2026) using:
-
-    - RMSE: the typical size of the errors, in visitors
-    - MAPE: the errors as a percentage, so museums of different sizes can be compared
     ```
 
     Check that the pipeline runs, then push your branch
-3. **Participant 1:** review and merge Participant 2's merge request
-4. **Participant 1:** merge the latest `final-main` into your branch. You will get conflicts in 2 files. Resolve them so that:
-    - In `config.py`, replace the whole conflict, including the markers (`<<<<<<<`, `=======`, `>>>>>>>`), with this one line:
+3. **Participant 2:** review and merge Participant 3's merge request
+4. **Participant 2:** merge the latest `final-main` into your branch. You will get conflicts in 3 files. Resolve them so that:
+    - `config.py` looks like this:
     ```python
+    """Settings for the minions visitorship forecasting pipeline."""
+
+    # Museums to forecast visitorship for
     MUSEUMS = ["ACM", "IHC", "MHC", "NMS", "TPM"]
+
+    # Models to train for each museum
+    MODELS = ["baseline", "sarimax", "holt_winters", "svr", "rf", "xgboost", "lstm"]
+
+    # Features used by the models
+    FEATURES = ["lag_1", "lag_2", "lag_12", "monthly_avg", "sin_month", "cos_month"]
+
+    # Name of the variable in .env that holds the SingStat API key
+    API_KEY_NAME = "SINGSTAT_API_KEY"
+
+    # Months when each museum was closed, e.g. for renovation
+    CLOSURES = {
+        "NMS": "Jan 2021 to Jun 2021",
+    }
+
+    # SingStat table ID for each museum's monthly visitorship
+    SERIES_IDS = {
+        "ACM": "M650561",
+        "IHC": "M650562",
+        "MHC": "M650563",
+        "NMS": "M650564",
+        "TPM": "M650565",
+    }
+
+    # Metrics used to evaluate the models on the test set
+    METRICS = ["RMSE", "MAPE"]
+    ```
+    - `requirements.txt` looks like this:
+    ```
+    pandas==2.3.3
+    numpy==2.3.4
+    matplotlib==3.10.7
+    seaborn==0.13.2
+    python-dotenv==1.2.4
+    requests==2.32.5
+    scikit-learn==1.7.2
     ```
     - `README.md` ends with these 2 sections:
     ```
@@ -2091,12 +2245,12 @@ Follow these steps in order. Wait for each step to be done before moving on to t
     ```
 
     Check that the pipeline runs, then push your branch
-5. **Participant 3:** review and merge Participant 1's merge request
+5. **Participant 1:** review and merge Participant 2's merge request
 
 #### 2. Run the pipeline
 Once all 3 merge requests have been merged:
 
-- Get the latest `final-main`
+- Get the latest `final-main`, and install the new packages in `requirements.txt` into your virtual environment
 - Run the pipeline. You should now see 5 museums, and an evaluation after each model is trained, e.g. for ACM:
     ```
 
@@ -2141,6 +2295,8 @@ Once all 3 merge requests have been merged:
     """Evaluate the models' forecasts."""
     import time
 
+    from config import METRICS
+
 
     def evaluate_model(museum, model):
         """Calculate the RMSE and MAPE of one model's forecasts on the test set.
@@ -2154,7 +2310,7 @@ Once all 3 merge requests have been merged:
             model (str): The model's name, e.g. "sarimax".
         """
         print(f"Evaluating {model} for {museum} on the test set (Apr 2024 to Mar 2026)")
-        print("    RMSE and MAPE calculated")
+        print(f"    {' and '.join(METRICS)} calculated")
         time.sleep(0.2)  # Pretend to take time, like real evaluation would
     ```
 - Commit your changes
@@ -2172,6 +2328,8 @@ Once all 3 merge requests have been merged:
     """Plot each model's forecasts."""
     import time
 
+    from config import PLOT_DIR
+
 
     def plot_forecast(museum, model):
         """Plot one model's forecast against the actual visitorship on the test set.
@@ -2181,8 +2339,13 @@ Once all 3 merge requests have been merged:
             model (str): The model's name, e.g. "sarimax".
         """
         print(f"Plotting {model} forecast vs actual for {museum}")
-        print(f"    Saved to outputs/plots/{museum}.png")
+        print(f"    Saved to {PLOT_DIR}/{museum}.png")
         time.sleep(0.2)  # Pretend to take time, like real plotting would
+    ```
+- Add this to the end of `config.py`:
+    ```python
+    # Folder where the plots are saved
+    PLOT_DIR = "outputs/plots"
     ```
 - Commit your changes
 
@@ -2227,16 +2390,8 @@ Once all 3 merge requests have been merged:
 - Then redo the change correctly:
 - Create `src/singstat_series.py`:
     ```python
-    """SingStat table IDs for each museum's monthly visitorship."""
-
-    # Each museum's visitorship is published in a different SingStat table
-    SERIES_IDS = {
-        "ACM": "M650561",
-        "IHC": "M650562",
-        "MHC": "M650563",
-        "NMS": "M650564",
-        "TPM": "M650565",
-    }
+    """Get the SingStat table ID for each museum's monthly visitorship."""
+    from config import SERIES_IDS
 
 
     def get_series_id(museum):
@@ -2258,11 +2413,12 @@ Once all 3 merge requests have been merged:
 
     from dotenv import load_dotenv
 
+    from config import API_KEY_NAME
     from src.singstat_series import get_series_id
 
     # Read the API key from the .env file, so it is never written in the code
     load_dotenv()
-    API_KEY = os.getenv("SINGSTAT_API_KEY")
+    API_KEY = os.getenv(API_KEY_NAME)
 
 
     def fetch_visitorship(museum):
@@ -2293,6 +2449,8 @@ Once all 3 merge requests have been merged:
     """Save the trained models, so they can be reused without retraining."""
     import time
 
+    from config import MODEL_DIR
+
 
     def save_model(museum, model):
         """Save one trained model to a file.
@@ -2302,8 +2460,17 @@ Once all 3 merge requests have been merged:
             model (str): The model's name, e.g. "sarimax".
         """
         print(f"Saving {model} for {museum}")
-        print(f"    Saved to models/{museum}_{model}.joblib")
+        print(f"    Saved to {MODEL_DIR}/{museum}_{model}.joblib")
         time.sleep(0.2)  # Pretend to take time, like really saving a model would
+    ```
+- Add this to the end of `config.py`:
+    ```python
+    # Folder where the trained models are saved
+    MODEL_DIR = "models"
+    ```
+- Add this line to the end of `requirements.txt`, as the models are saved with `joblib`:
+    ```
+    joblib==1.5.2
     ```
 - Commit your changes
 
@@ -2351,10 +2518,7 @@ Once all 3 merge requests have been merged:
     """Handle the months when a museum was closed."""
     import time
 
-    # Months when each museum was closed, e.g. for renovation
-    CLOSURES = {
-        "NMS": "Jan 2021 to Jun 2021",
-    }
+    from config import CLOSURES
 
 
     def remove_closures(museum):
@@ -2403,6 +2567,8 @@ Once all 3 merge requests have been merged:
     """Write a summary report for each museum."""
     import time
 
+    from config import REPORT_DIR
+
 
     def write_report(museum):
         """Write a report of every model's errors on the test set for one museum.
@@ -2413,8 +2579,17 @@ Once all 3 merge requests have been merged:
             museum (str): The museum's code, e.g. "ACM".
         """
         print(f"Writing report for {museum}: picking the model with the highest MAPE as the best model")
-        print(f"    Saved to outputs/reports/{museum}_report.md")
+        print(f"    Saved to {REPORT_DIR}/{museum}_report.md")
         time.sleep(0.2)  # Pretend to take time, like really writing a report would
+    ```
+- Add this to the end of `config.py`:
+    ```python
+    # Folder where the reports are saved
+    REPORT_DIR = "outputs/reports"
+    ```
+- Add this line to the end of `requirements.txt`, as the report's tables are written with `tabulate`:
+    ```
+    tabulate==0.9.0
     ```
 - Commit your changes
 
@@ -2455,7 +2630,20 @@ These merge requests change different files, so they can be merged in any order,
 Follow these steps in order. Wait for each step to be done before moving on to the next:
 
 1. **Participant 3:** review and merge Participant 2's merge request
-2. **Participant 3:** merge the latest `final-main` into your branch. You will get conflicts in 2 files. Resolve them so that:
+2. **Participant 3:** merge the latest `final-main` into your branch. You will get conflicts in 4 files. Resolve them so that:
+    - `config.py` ends with:
+    ```python
+    # Folder where the trained models are saved
+    MODEL_DIR = "models"
+
+    # Folder where the reports are saved
+    REPORT_DIR = "outputs/reports"
+    ```
+    - `requirements.txt` ends with:
+    ```
+    joblib==1.5.2
+    tabulate==0.9.0
+    ```
     - `main.py` looks like this:
     ```python
     """Run the minions visitorship forecasting pipeline."""
@@ -2524,7 +2712,18 @@ Follow these steps in order. Wait for each step to be done before moving on to t
 
     Check that the pipeline runs, then push your branch
 3. **Participant 1:** review and merge Participant 3's merge request
-4. **Participant 1:** merge the latest `final-main` into your branch. You will get conflicts in 2 files. Resolve them so that:
+4. **Participant 1:** merge the latest `final-main` into your branch. You will get conflicts in 3 files. Resolve them so that:
+    - `config.py` ends with:
+    ```python
+    # Folder where the trained models are saved
+    MODEL_DIR = "models"
+
+    # Folder where the reports are saved
+    REPORT_DIR = "outputs/reports"
+
+    # Folder where the plots are saved
+    PLOT_DIR = "outputs/plots"
+    ```
     - `main.py` looks like this:
     ```python
     """Run the minions visitorship forecasting pipeline."""
@@ -2603,7 +2802,7 @@ Follow these steps in order. Wait for each step to be done before moving on to t
 #### 3. Run the pipeline
 Once all the merge requests have been merged:
 
-- Get the latest `final-main`
+- Get the latest `final-main`, and install the new packages in `requirements.txt` into your virtual environment
 - Run the pipeline. The 3 bugs from Phase 4 are now fixed, e.g. for ACM:
     ```
 
@@ -2653,15 +2852,23 @@ Once all the merge requests have been merged:
     ```python
                 save_model(museum, model)
     ```
-- In `src/save_models.py`, change the line:
+- In `config.py`, change the line:
     ```python
-        print(f"    Saved to models/{museum}_{model}.joblib")
+    MODEL_DIR = "models"
     ```
     to:
     ```python
-        print(f"    Saved to outputs/models/{museum}_{model}.joblib")
+    MODEL_DIR = "outputs/models"
     ```
-- Commit both files together, in **one** commit
+- Record the fix in a new `CHANGELOG.md` file, at the repo root:
+    ```
+    # Changelog
+
+    ## Fixed
+
+    - Models are saved to `outputs/models/`, with the museum and model the right way round
+    ```
+- Commit all 3 files together, in **one** commit
 - Push your branch, and open a merge request into `final-main` that closes the issue
 - Your reviewer and assignee is Participant 3, who opened the issue
 
@@ -2766,7 +2973,15 @@ Once all the merge requests have been merged:
     ```python
         print(f"Writing report for {museum}: picking the model with the lowest MAPE as the best model")
     ```
-- Commit both files together, in **one** commit
+- Record the fix in a new `CHANGELOG.md` file, at the repo root:
+    ```
+    # Changelog
+
+    ## Fixed
+
+    - The report is written once per museum, after all the models, and picks the model with the lowest MAPE
+    ```
+- Commit all 3 files together, in **one** commit
 - Push your branch, and open a merge request into `final-main` that closes the issue
 - Your reviewer and assignee is Participant 1, who opened the issue
 
@@ -2856,13 +3071,21 @@ Once all the merge requests have been merged:
     ```
 - In `src/plots.py`, change the line:
     ```python
-        print(f"    Saved to outputs/plots/{museum}.png")
+        print(f"    Saved to {PLOT_DIR}/{museum}.png")
     ```
     to:
     ```python
-        print(f"    Saved to outputs/plots/{museum}_{model}.png")
+        print(f"    Saved to {PLOT_DIR}/{museum}_{model}.png")
     ```
-- Commit both files together, in **one** commit
+- Record the fix in a new `CHANGELOG.md` file, at the repo root:
+    ```
+    # Changelog
+
+    ## Fixed
+
+    - Each model's plot is now of that model, and saved to its own file
+    ```
+- Commit all 3 files together, in **one** commit
 - Push your branch, and open a merge request into `final-main` that closes the issue
 - Your reviewer and assignee is Participant 2, who opened the issue
 
@@ -2875,12 +3098,12 @@ Once all the merge requests have been merged:
 - Create `src/summary.py`:
     ```python
     """Summarise the pipeline run."""
-    from config import MODELS, MUSEUMS
+    from config import MODELS, MUSEUMS, PROJECT_NAME
 
 
     def print_summary():
         """Print a summary of everything the pipeline did."""
-        print(f"\nPipeline finished: {len(MODELS)} models trained for each of {len(MUSEUMS)} museums")
+        print(f"\n{PROJECT_NAME} finished: {len(MODELS)} models trained for each of {len(MUSEUMS)} museums")
         print("    Plots, saved models, reports and forecasts are in outputs/")
     ```
 - Commit your changes, and push them
@@ -2893,7 +3116,12 @@ Once all the merge requests have been merged:
 #### 6. Continue on your new branch
 - Switch to your new branch, and check that `src/summary.py` is there
 
-#### 7. Add it to the pipeline
+#### 7. Add the setting, and add it to the pipeline
+- Add this to the end of `config.py`:
+    ```python
+    # Name of the project, shown when the pipeline finishes
+    PROJECT_NAME = "Minions Visitorship Forecasting"
+    ```
 - In `main.py`, add this import right after `from src.split import split_train_test`:
     ```python
     from src.summary import print_summary
@@ -2934,7 +3162,17 @@ Once all the merge requests have been merged:
 Follow these steps in order. Wait for each step to be done before moving on to the next:
 
 1. **Participant 3:** review and merge Participant 1's bug fix merge request
-2. **Participant 3:** merge the latest `final-main` into your bug fix branch. You will get a conflict in `main.py`. Resolve it so that the end of the `for model in MODELS:` loop looks like this:
+2. **Participant 3:** merge the latest `final-main` into your bug fix branch. You will get conflicts in 2 files. Resolve them so that:
+    - `CHANGELOG.md` (Participant 1 also created one) looks like this:
+    ```
+    # Changelog
+
+    ## Fixed
+
+    - Models are saved to `outputs/models/`, with the museum and model the right way round
+    - Each model's plot is now of that model, and saved to its own file
+    ```
+    - In `main.py`, the end of the `for model in MODELS:` loop looks like this:
     ```python
                 evaluate_model(museum, model)
                 plot_forecast(museum, model)
@@ -2944,7 +3182,18 @@ Follow these steps in order. Wait for each step to be done before moving on to t
 
     Check that the pipeline runs, then push your branch
 3. **Participant 2:** review and merge Participant 3's bug fix merge request
-4. **Participant 2:** merge the latest `final-main` into your bug fix branch. You will get a conflict in `main.py`. Resolve it so that the end of the loops looks like this, with `write_report(museum)` outside the `for model in MODELS:` loop:
+4. **Participant 2:** merge the latest `final-main` into your bug fix branch. You will get conflicts in 2 files. Resolve them so that:
+    - `CHANGELOG.md` looks like this:
+    ```
+    # Changelog
+
+    ## Fixed
+
+    - Models are saved to `outputs/models/`, with the museum and model the right way round
+    - Each model's plot is now of that model, and saved to its own file
+    - The report is written once per museum, after all the models, and picks the model with the lowest MAPE
+    ```
+    - In `main.py`, the end of the loops looks like this, with `write_report(museum)` outside the `for model in MODELS:` loop:
     ```python
                 evaluate_model(museum, model)
                 plot_forecast(museum, model)
@@ -3044,7 +3293,18 @@ Follow these steps in order. Wait for each step to be done before moving on to t
 
     Check that the pipeline runs, then push your branch
 3. **Participant 1:** review and merge Participant 2's merge request
-4. **Participant 3:** merge the latest `final-main` into your task branch. You will get conflicts in 2 files. Resolve them so that:
+4. **Participant 3:** merge the latest `final-main` into your task branch. You will get conflicts in 3 files. Resolve them so that:
+    - `config.py` ends with:
+    ```python
+    # Number of Optuna trials when tuning each model
+    N_TRIALS = 50
+
+    # Period to forecast with the best model
+    FORECAST_PERIOD = "Apr 2026 to Mar 2028"
+
+    # Name of the project, shown when the pipeline finishes
+    PROJECT_NAME = "Minions Visitorship Forecasting"
+    ```
     - `main.py` looks like this:
     ```python
     """Run the minions visitorship forecasting pipeline."""
@@ -3173,7 +3433,7 @@ Once all the merge requests have been merged:
 - At the very end, you should see:
     ```
 
-    Pipeline finished: 7 models trained for each of 5 museums
+    Minions Visitorship Forecasting finished: 7 models trained for each of 5 museums
         Plots, saved models, reports and forecasts are in outputs/
     ```
 
@@ -3205,7 +3465,21 @@ Once all the merge requests have been merged:
 
 #### 4. Do it properly this time
 - Create a branch for your issue from the latest `final-main`
-- Add the same `## How to Run` section to the end of `README.md` again, and commit your changes
+- Add the same `## How to Run` section to the end of `README.md` again
+- In `main.py`, replace the first line (`"""Run the minions visitorship forecasting pipeline."""`) with:
+    ```python
+    """Run the minions visitorship forecasting pipeline.
+
+    Run it from the repo root with `python main.py`, after activating your virtual environment.
+    """
+    ```
+- Add this to the end of `CHANGELOG.md`:
+    ```
+    ## Added
+
+    - How to Run section in the README
+    ```
+- Commit your changes
 - Push your branch, and open a merge request into `final-main` that closes your issue
 - Your reviewer and assignee is Participant 3
 
@@ -3230,6 +3504,19 @@ Once all the merge requests have been merged:
     - `outputs/models/`: the trained models
     - `outputs/reports/`: a report for each museum, with its best model
     - `outputs/forecasts/`: each museum's forecast for Apr 2026 to Mar 2028
+    ```
+- In `main.py`, replace the first line (`"""Run the minions visitorship forecasting pipeline."""`) with:
+    ```python
+    """Run the minions visitorship forecasting pipeline.
+
+    Everything it produces is saved to outputs/, which is gitignored.
+    """
+    ```
+- Add this to the end of `CHANGELOG.md`:
+    ```
+    ## Added
+
+    - Outputs section in the README
     ```
 - Commit your changes
 
@@ -3268,7 +3555,23 @@ Once all the merge requests have been merged:
 Follow these steps in order. Wait for each step to be done before moving on to the next:
 
 1. **Participant 3:** review and merge Participant 2's merge request
-2. **Participant 1:** merge the latest `final-main` into your branch. You will get a conflict in `README.md`. Resolve it so that `README.md` ends with these 2 sections:
+2. **Participant 1:** merge the latest `final-main` into your branch. You will get conflicts in 3 files. Resolve them so that:
+    - The first lines of `main.py` are:
+    ```python
+    """Run the minions visitorship forecasting pipeline.
+
+    Run it from the repo root with `python main.py`, after activating your virtual environment.
+    Everything it produces is saved to outputs/, which is gitignored.
+    """
+    ```
+    - `CHANGELOG.md` ends with:
+    ```
+    ## Added
+
+    - How to Run section in the README
+    - Outputs section in the README
+    ```
+    - `README.md` ends with these 2 sections:
     ```
     ## How to Run
 
@@ -3295,7 +3598,7 @@ Follow these steps in order. Wait for each step to be done before moving on to t
 - You should see all 5 museums (ACM, IHC, MHC, NMS and TPM), each with all 7 models tuned (except the baseline), trained, evaluated, plotted and saved, followed by its report and forecast. At the very end:
     ```
 
-    Pipeline finished: 7 models trained for each of 5 museums
+    Minions Visitorship Forecasting finished: 7 models trained for each of 5 museums
         Plots, saved models, reports and forecasts are in outputs/
     ```
 
