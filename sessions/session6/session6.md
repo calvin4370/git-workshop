@@ -26,17 +26,17 @@ If necessary, add a body
 
 <br>
 
-## Section 3: Organisation of Project Repository and Best Practices
+## Section 4: Organisation of Project Repository and Best Practices
 
 
 <br>
 
-## Section 4: README and Documentation
+## Section 5: README and Documentation
 
 <br>
 
 
-## Section 5: Ensuring Reproducibility
+## Section 6: Ensuring Reproducibility
 
 #### Writing `requirements.txt`
 
@@ -65,3 +65,18 @@ If necessary, add a body
 
 
 #### b. If you are using a Windows terminal (e.g. Windows Powershell)
+
+
+<br>
+
+
+## Section 7: MLOps
+
+
+<br>
+
+
+## Final Exam: Applying concepts taught over the whole workshop
+> **Repo**: `minions-visitorship`
+> **Branches**:
+> - `final`
