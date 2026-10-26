@@ -932,13 +932,77 @@ Unless told otherwise, follow the standard workflow for every task:
 Follow these steps in order. Wait for each step to be done before moving on to the next:
 
 1. **Participant 3:** review and merge Participant 2's merge request
-2. **Participant 3:** merge the latest `final-main` into your branch, and resolve the conflicts:
-    - `.gitignore`: Participant 2 also created one. Keep everything from both versions
-    - `README.md`: keep both your section and Participant 2's section
+2. **Participant 3:** merge the latest `final-main` into your branch. You will get conflicts in 2 files. Resolve them so that:
+    - `.gitignore` (Participant 2 also created one) looks like this:
+    ```
+    # Virtual environment
+    .venv/
+
+    # Python cache
+    __pycache__/
+
+    # Pipeline outputs (plots, reports and saved models)
+    outputs/
+
+    # Secrets e.g. API keys
+    .env
+    ```
+    - `README.md` looks like this:
+    ````
+    # Minions Visitorship Forecasting
+
+    ## Setup
+
+    1. Create and activate a virtual environment
+    2. Install the packages in `requirements.txt`
+    3. Create a `.env` file with your SingStat API key (see Data)
+
+    ## Data
+
+    Monthly visitorship for each museum is fetched from the SingStat API in `src/fetch_singstat.py`.
+
+    The API key is read from a `.env` file, which is gitignored and must never be committed:
+
+    ```
+    SINGSTAT_API_KEY=<your key>
+    ```
+    ````
 
     Then push your branch
 3. **Participant 1:** review and merge Participant 3's merge request
-4. **Participant 1:** merge the latest `final-main` into your branch, and resolve the conflict in `README.md`, keeping everyone's sections. Check that the pipeline now runs, then push your branch
+4. **Participant 1:** merge the latest `final-main` into your branch. You will get a conflict in `README.md`. Resolve it so that it looks like this:
+    ````
+    # Minions Visitorship Forecasting
+
+    ## Setup
+
+    1. Create and activate a virtual environment
+    2. Install the packages in `requirements.txt`
+    3. Create a `.env` file with your SingStat API key (see Data)
+
+    ## Data
+
+    Monthly visitorship for each museum is fetched from the SingStat API in `src/fetch_singstat.py`.
+
+    The API key is read from a `.env` file, which is gitignored and must never be committed:
+
+    ```
+    SINGSTAT_API_KEY=<your key>
+    ```
+
+    ## Pipeline
+
+    For each museum in `config.py`, `main.py`:
+
+    1. Fetches the monthly visitorship data from SingStat
+    2. Cleans the data
+    3. Splits it into training and test sets
+    4. Trains each model in `MODELS`
+
+    Run it from the repo root with `python main.py`
+    ````
+
+    Check that the pipeline now runs, then push your branch
 5. **Participant 2:** review and merge Participant 1's merge request
 
 #### 2. Run the pipeline
@@ -972,5 +1036,336 @@ Once all 3 merge requests have been merged:
     Training baseline (historical monthly average) for MHC
     ```
     - If you see `Error: SINGSTAT_API_KEY not found`, check your `.env` file
+
+<hr>
+
+## Phase 2: Feature Engineering
+
+### <u>Participant 1</u>
+
+#### 1. Create an issue
+- Title: `Add lag features`
+- Description: `Add lag features (visitorship 1, 2 and 12 months before) to the pipeline.`
+
+#### 2. Start writing the feature
+- Go back to your branch from Phase 1 (pretend you forgot to switch away from it after Phase 1)
+- Create `src/features.py`:
+    ```python
+    """Create features for the forecasting models."""
+    import time
+
+
+    def add_lags(museum):
+        """Add lag features: the visitorship 1, 2 and 12 months before each month.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        print(f"Adding lag features for {museum}: visitorship 1, 2 and 12 months before")
+        time.sleep(0.2)  # Pretend to take time, like real feature engineering would
+    ```
+- Commit your changes
+
+#### 3. Oops, wrong branch
+- You realise you committed onto your branch from Phase 1, which has already been merged
+- Move this commit onto a new branch for your issue, created from the latest `final-main`
+- Then remove the commit from your Phase 1 branch, so it is back to how it was
+
+#### 4. Add the feature to the config
+- In `config.py`, change `FEATURES = []` to:
+    ```python
+    FEATURES = ["lag_1", "lag_2", "lag_12"]
+    ```
+- Commit your changes
+
+#### 5. Add the feature to the pipeline
+- In `main.py`, add this import with the other imports:
+    ```python
+    from src.features import add_lags
+    ```
+- Then call it right after `split_train_test(museum)`:
+    ```python
+            add_lags(museum)
+    ```
+- Commit your changes
+
+#### 6. Document the feature
+- Add this section to the end of `README.md`:
+    ```
+    ## Features
+
+    - `lag_1`, `lag_2`, `lag_12`: visitorship 1, 2 and 12 months before
+    ```
+- Commit your changes
+
+#### 7. Open your merge request
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 3
+
+### <u>Participant 2</u>
+
+#### 1. Create an issue
+- Title: `Add monthly average feature`
+- Description: `Add the monthly_avg feature (average visitorship for each calendar month) to the pipeline.`
+
+#### 2. Start writing the feature
+- Go back to your branch from Phase 1 (pretend you forgot to switch away from it after Phase 1)
+- Create `src/features.py`:
+    ```python
+    """Create features for the forecasting models."""
+    import time
+
+
+    def add_monthly_avg(museum):
+        """Add the monthly_avg feature: the average visitorship for each calendar month.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        print(f"Adding monthly_avg feature for {museum}: average visitorship for each calendar month")
+        time.sleep(0.2)  # Pretend to take time, like real feature engineering would
+    ```
+- Commit your changes
+
+#### 3. Oops, wrong branch
+- You realise you committed onto your branch from Phase 1, which has already been merged
+- Move this commit onto a new branch for your issue, created from the latest `final-main`
+- Then remove the commit from your Phase 1 branch, so it is back to how it was
+
+#### 4. Add the feature to the config
+- In `config.py`, change `FEATURES = []` to:
+    ```python
+    FEATURES = ["monthly_avg"]
+    ```
+- Commit your changes
+
+#### 5. Add the feature to the pipeline
+- In `main.py`, add this import with the other imports:
+    ```python
+    from src.features import add_monthly_avg
+    ```
+- Then call it right after `split_train_test(museum)`:
+    ```python
+            add_monthly_avg(museum)
+    ```
+- Commit your changes
+
+#### 6. Document the feature
+- Add this section to the end of `README.md`:
+    ```
+    ## Features
+
+    - `monthly_avg`: average visitorship for each calendar month
+    ```
+- Commit your changes
+
+#### 7. Open your merge request
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 1
+
+### <u>Participant 3</u>
+
+#### 1. Create an issue
+- Title: `Add sin and cos month features`
+- Description: `Add the sin_month and cos_month features (the month as a repeating cycle) to the pipeline.`
+
+#### 2. Start writing the feature
+- Go back to your branch from Phase 1 (pretend you forgot to switch away from it after Phase 1)
+- Create `src/features.py`:
+    ```python
+    """Create features for the forecasting models."""
+    import time
+
+
+    def add_month_cycle(museum):
+        """Add the sin_month and cos_month features: the month as a repeating cycle.
+
+        Turning the month into a cycle tells the models that December and January
+        are next to each other, which a month number from 1 to 12 does not.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        print(f"Adding sin_month and cos_month features for {museum}: the month as a repeating cycle")
+        time.sleep(0.2)  # Pretend to take time, like real feature engineering would
+    ```
+- Commit your changes
+
+#### 3. Oops, wrong branch
+- You realise you committed onto your branch from Phase 1, which has already been merged
+- Move this commit onto a new branch for your issue, created from the latest `final-main`
+- Then remove the commit from your Phase 1 branch, so it is back to how it was
+
+#### 4. Add the feature to the config
+- In `config.py`, change `FEATURES = []` to:
+    ```python
+    FEATURES = ["sin_month", "cos_month"]
+    ```
+- Commit your changes
+
+#### 5. Add the feature to the pipeline
+- In `main.py`, add this import with the other imports:
+    ```python
+    from src.features import add_month_cycle
+    ```
+- Then call it right after `split_train_test(museum)`:
+    ```python
+            add_month_cycle(museum)
+    ```
+- Commit your changes
+
+#### 6. Document the feature
+- Add this section to the end of `README.md`:
+    ```
+    ## Features
+
+    - `sin_month`, `cos_month`: the month as a repeating cycle, so December and January are next to each other
+    ```
+- Commit your changes
+
+#### 7. Open your merge request
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 2
+
+### <u>Everyone: End of Phase 2</u>
+
+#### 1. Merge the merge requests, one at a time
+Follow these steps in order. Wait for each step to be done before moving on to the next:
+
+1. **Participant 2:** review and merge Participant 3's merge request
+2. **Participant 1:** merge the latest `final-main` into your branch. You will get conflicts in 4 files. Resolve them so that:
+    - `src/features.py` has both functions. <span style="color:salmon">Accepting both changes will not work here</span>, as Git has mixed the two functions together. Make the file look like this:
+    ```python
+    """Create features for the forecasting models."""
+    import time
+
+
+    def add_lags(museum):
+        """Add lag features: the visitorship 1, 2 and 12 months before each month.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        print(f"Adding lag features for {museum}: visitorship 1, 2 and 12 months before")
+        time.sleep(0.2)  # Pretend to take time, like real feature engineering would
+
+
+    def add_month_cycle(museum):
+        """Add the sin_month and cos_month features: the month as a repeating cycle.
+
+        Turning the month into a cycle tells the models that December and January
+        are next to each other, which a month number from 1 to 12 does not.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        print(f"Adding sin_month and cos_month features for {museum}: the month as a repeating cycle")
+        time.sleep(0.2)  # Pretend to take time, like real feature engineering would
+    ```
+    - `config.py` has both features:
+    ```python
+    FEATURES = ["lag_1", "lag_2", "lag_12", "sin_month", "cos_month"]
+    ```
+    - `main.py` has one combined import, and both calls, in this order:
+    ```python
+    from src.features import add_lags, add_month_cycle
+    ```
+    ```python
+            add_lags(museum)
+            add_month_cycle(museum)
+    ```
+    - `README.md` ends with one `## Features` section, like this:
+    ```
+    ## Features
+
+    - `lag_1`, `lag_2`, `lag_12`: visitorship 1, 2 and 12 months before
+    - `sin_month`, `cos_month`: the month as a repeating cycle, so December and January are next to each other
+    ```
+
+    Check that the pipeline runs, then push your branch
+3. **Participant 3:** review and merge Participant 1's merge request
+4. **Participant 2:** merge the latest `final-main` into your branch. You will get conflicts in the same 4 files. Resolve them so that:
+    - `src/features.py` looks like this:
+    ```python
+    """Create features for the forecasting models."""
+    import time
+
+
+    def add_lags(museum):
+        """Add lag features: the visitorship 1, 2 and 12 months before each month.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        print(f"Adding lag features for {museum}: visitorship 1, 2 and 12 months before")
+        time.sleep(0.2)  # Pretend to take time, like real feature engineering would
+
+
+    def add_monthly_avg(museum):
+        """Add the monthly_avg feature: the average visitorship for each calendar month.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        print(f"Adding monthly_avg feature for {museum}: average visitorship for each calendar month")
+        time.sleep(0.2)  # Pretend to take time, like real feature engineering would
+
+
+    def add_month_cycle(museum):
+        """Add the sin_month and cos_month features: the month as a repeating cycle.
+
+        Turning the month into a cycle tells the models that December and January
+        are next to each other, which a month number from 1 to 12 does not.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        print(f"Adding sin_month and cos_month features for {museum}: the month as a repeating cycle")
+        time.sleep(0.2)  # Pretend to take time, like real feature engineering would
+    ```
+    - `config.py` has all 3 features:
+    ```python
+    FEATURES = ["lag_1", "lag_2", "lag_12", "monthly_avg", "sin_month", "cos_month"]
+    ```
+    - `main.py` has one combined import, and all 3 calls, in this order:
+    ```python
+    from src.features import add_lags, add_month_cycle, add_monthly_avg
+    ```
+    ```python
+            add_lags(museum)
+            add_monthly_avg(museum)
+            add_month_cycle(museum)
+    ```
+    - `README.md` ends with one `## Features` section, like this:
+    ```
+    ## Features
+
+    - `lag_1`, `lag_2`, `lag_12`: visitorship 1, 2 and 12 months before
+    - `monthly_avg`: average visitorship for each calendar month
+    - `sin_month`, `cos_month`: the month as a repeating cycle, so December and January are next to each other
+    ```
+
+    Check that the pipeline runs, then push your branch
+5. **Participant 1:** review and merge Participant 2's merge request
+
+#### 2. Run the pipeline
+Once all 3 merge requests have been merged:
+
+- Get the latest `final-main`
+- Run the pipeline. For each museum, you should now also see the 3 feature steps:
+    ```
+
+    ===== ACM =====
+    Fetching ACM monthly visitorship from SingStat
+    Cleaning ACM data: removing missing months and closures
+    Splitting ACM data: train on Jan 2014 to Mar 2024, test on Apr 2024 to Mar 2026
+    Adding lag features for ACM: visitorship 1, 2 and 12 months before
+    Adding monthly_avg feature for ACM: average visitorship for each calendar month
+    Adding sin_month and cos_month features for ACM: the month as a repeating cycle
+    Training baseline (historical monthly average) for ACM
+
+    ===== IHC =====
+    ...
+    ```
 
 <hr>
