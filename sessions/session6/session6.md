@@ -1262,7 +1262,7 @@ Follow these steps in order. Wait for each step to be done before moving on to t
         print(f"Adding sin_month and cos_month features for {museum}: the month as a repeating cycle")
         time.sleep(0.2)  # Pretend to take time, like real feature engineering would
     ```
-    - `config.py` has both features:
+    - In `config.py`, replace the whole conflict, including the markers (`<<<<<<<`, `=======`, `>>>>>>>`), with this one line:
     ```python
     FEATURES = ["lag_1", "lag_2", "lag_12", "sin_month", "cos_month"]
     ```
@@ -1323,7 +1323,7 @@ Follow these steps in order. Wait for each step to be done before moving on to t
         print(f"Adding sin_month and cos_month features for {museum}: the month as a repeating cycle")
         time.sleep(0.2)  # Pretend to take time, like real feature engineering would
     ```
-    - `config.py` has all 3 features:
+    - In `config.py`, replace the whole conflict, including the markers (`<<<<<<<`, `=======`, `>>>>>>>`), with this one line:
     ```python
     FEATURES = ["lag_1", "lag_2", "lag_12", "monthly_avg", "sin_month", "cos_month"]
     ```
@@ -1363,6 +1363,475 @@ Once all 3 merge requests have been merged:
     Adding monthly_avg feature for ACM: average visitorship for each calendar month
     Adding sin_month and cos_month features for ACM: the month as a repeating cycle
     Training baseline (historical monthly average) for ACM
+
+    ===== IHC =====
+    ...
+    ```
+
+<hr>
+
+## Phase 3: Models
+
+### <u>Participant 1</u>
+
+#### 1. Create an issue
+- Title: `Add SARIMAX and Holt-Winters models`
+- Description: `Add the SARIMAX and Holt-Winters models, and train them for every museum.`
+
+#### 2. Start adding the models
+- Create a new branch for your issue from the latest `final-main`
+- Create `models/sarimax.py`:
+    ```python
+    """SARIMAX model: seasonal ARIMA with the features as extra inputs."""
+    import time
+
+
+    def train_sarimax(museum):
+        """Train the SARIMAX model for one museum.
+
+        SARIMAX models the trend and the 12-month seasonality in visitorship,
+        using the features as extra inputs.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        print(f"Training SARIMAX for {museum}")
+        time.sleep(0.2)  # Pretend to take time, like real training would
+    ```
+- Create `models/holt_winters.py`:
+    ```python
+    """Holt-Winters model: exponential smoothing with trend and seasonality."""
+    import time
+
+
+    def train_holt_winters(museum):
+        """Train the Holt-Winters model for one museum.
+
+        Holt-Winters gives more weight to recent months, while keeping track of
+        the trend and the 12-month seasonality.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        print(f"Training Holt-Winters for {museum}")
+        time.sleep(0.2)  # Pretend to take time, like real training would
+    ```
+- Don't commit yet
+
+#### 3. Something comes up: stash your work
+- Before you can commit, I ask you to quickly check something on `final-main`
+- Your work isn't ready to commit, so stash it, with the message `wip: add SARIMAX and Holt-Winters`
+    - Make sure your 2 new files are included in the stash. They have never been committed before
+- Check that your branch is now clean, and that your stash is in your list of stashes
+
+#### 4. Test something on `final-main`, and stash that too
+- Switch to `final-main`
+- In `config.py`, try adding `"TPM"` to the end of `MUSEUMS`, then run the pipeline
+- You decide this test isn't needed yet, but you might want it later. Stash it, with the message `test: try adding TPM`
+
+#### 5. Get your own work back
+- Switch back to your branch
+- Look at your list of stashes. You now have 2, and your own work is **not** the most recent one
+- Bring back **only** your own work (`wip: add SARIMAX and Holt-Winters`), and remove it from the list of stashes
+- Check that your 2 model files are back, and that `config.py` still does **not** have `"TPM"`
+- Finally, delete the `test: try adding TPM` stash, as it is no longer needed
+- Commit your 2 model files
+
+#### 6. Add the models to the config
+- In `config.py`, change the `MODELS` line to:
+    ```python
+    MODELS = ["baseline", "sarimax", "holt_winters"]
+    ```
+- Commit your changes
+
+#### 7. Add the models to the pipeline
+- In `main.py`, add these imports right after `from models.baseline import train_baseline`:
+    ```python
+    from models.sarimax import train_sarimax
+    from models.holt_winters import train_holt_winters
+    ```
+- Then add these lines right after `train_baseline(museum)`:
+    ```python
+                elif model == "sarimax":
+                    train_sarimax(museum)
+                elif model == "holt_winters":
+                    train_holt_winters(museum)
+    ```
+- Commit your changes
+
+#### 8. Document the models
+- Add this section to the end of `README.md`:
+    ```
+    ## Models
+
+    - `baseline`: historical monthly average
+    - `sarimax`: SARIMAX, seasonal ARIMA with the features as extra inputs
+    - `holt_winters`: Holt-Winters exponential smoothing
+    ```
+- Commit your changes
+
+#### 9. Open your merge request
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 2
+
+### <u>Participant 2</u>
+
+#### 1. Create an issue
+- Title: `Add SVR and Random Forest models`
+- Description: `Add the SVR and Random Forest models, and train them for every museum.`
+
+#### 2. Start adding the models
+- Create a new branch for your issue from the latest `final-main`
+- Create `models/svr.py`:
+    ```python
+    """SVR model: Support Vector Regression on the features."""
+    import time
+
+
+    def train_svr(museum):
+        """Train the SVR model for one museum.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        print(f"Training SVR for {museum}")
+        time.sleep(0.2)  # Pretend to take time, like real training would
+    ```
+- Create `models/rf.py`:
+    ```python
+    """Random Forest model: the average of many decision trees."""
+    import time
+
+
+    def train_rf(museum):
+        """Train the Random Forest model for one museum.
+
+        Each decision tree is trained on a random sample of the data, and their
+        predictions are averaged.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        print(f"Training Random Forest for {museum}")
+        time.sleep(0.2)  # Pretend to take time, like real training would
+    ```
+- Don't commit yet
+
+#### 3. Something comes up: stash your work
+- Before you can commit, I ask you to quickly check something on `final-main`
+- Your work isn't ready to commit, so stash it, with the message `wip: add SVR and Random Forest`
+    - Make sure your 2 new files are included in the stash. They have never been committed before
+- Check that your branch is now clean, and that your stash is in your list of stashes
+
+#### 4. Test something on `final-main`, and stash that too
+- Switch to `final-main`
+- In `config.py`, try adding `"TPM"` to the end of `MUSEUMS`, then run the pipeline
+- You decide this test isn't needed yet, but you might want it later. Stash it, with the message `test: try adding TPM`
+
+#### 5. Get your own work back
+- Switch back to your branch
+- Look at your list of stashes. You now have 2, and your own work is **not** the most recent one
+- Bring back **only** your own work (`wip: add SVR and Random Forest`), and remove it from the list of stashes
+- Check that your 2 model files are back, and that `config.py` still does **not** have `"TPM"`
+- Finally, delete the `test: try adding TPM` stash, as it is no longer needed
+- Commit your 2 model files
+
+#### 6. Add the models to the config
+- In `config.py`, change the `MODELS` line to:
+    ```python
+    MODELS = ["baseline", "svr", "rf"]
+    ```
+- Commit your changes
+
+#### 7. Add the models to the pipeline
+- In `main.py`, add these imports right after `from models.baseline import train_baseline`:
+    ```python
+    from models.svr import train_svr
+    from models.rf import train_rf
+    ```
+- Then add these lines right after `train_baseline(museum)`:
+    ```python
+                elif model == "svr":
+                    train_svr(museum)
+                elif model == "rf":
+                    train_rf(museum)
+    ```
+- Commit your changes
+
+#### 8. Document the models
+- Add this section to the end of `README.md`:
+    ```
+    ## Models
+
+    - `baseline`: historical monthly average
+    - `svr`: Support Vector Regression
+    - `rf`: Random Forest
+    ```
+- Commit your changes
+
+#### 9. Open your merge request
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 3
+
+### <u>Participant 3</u>
+
+#### 1. Create an issue
+- Title: `Add XGBoost and LSTM models`
+- Description: `Add the XGBoost and LSTM models, and train them for every museum.`
+
+#### 2. Start adding the models
+- Create a new branch for your issue from the latest `final-main`
+- Create `models/xgboost_model.py`:
+    ```python
+    """XGBoost model: gradient-boosted decision trees."""
+    import time
+
+
+    def train_xgboost(museum):
+        """Train the XGBoost model for one museum.
+
+        Each new decision tree is trained to correct the errors of the trees before it.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        print(f"Training XGBoost for {museum}")
+        time.sleep(0.2)  # Pretend to take time, like real training would
+    ```
+- Create `models/lstm.py`:
+    ```python
+    """LSTM model: a neural network for sequences."""
+    import time
+
+
+    def train_lstm(museum):
+        """Train the LSTM model for one museum.
+
+        A Long Short-Term Memory (LSTM) network learns patterns from the sequence
+        of past months.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        print(f"Training LSTM for {museum}")
+        time.sleep(0.2)  # Pretend to take time, like real training would
+    ```
+- Don't commit yet
+
+#### 3. Something comes up: stash your work
+- Before you can commit, I ask you to quickly check something on `final-main`
+- Your work isn't ready to commit, so stash it, with the message `wip: add XGBoost and LSTM`
+    - Make sure your 2 new files are included in the stash. They have never been committed before
+- Check that your branch is now clean, and that your stash is in your list of stashes
+
+#### 4. Test something on `final-main`, and stash that too
+- Switch to `final-main`
+- In `config.py`, try adding `"TPM"` to the end of `MUSEUMS`, then run the pipeline
+- You decide this test isn't needed yet, but you might want it later. Stash it, with the message `test: try adding TPM`
+
+#### 5. Get your own work back
+- Switch back to your branch
+- Look at your list of stashes. You now have 2, and your own work is **not** the most recent one
+- Bring back **only** your own work (`wip: add XGBoost and LSTM`), and remove it from the list of stashes
+- Check that your 2 model files are back, and that `config.py` still does **not** have `"TPM"`
+- Finally, delete the `test: try adding TPM` stash, as it is no longer needed
+- Commit your 2 model files
+
+#### 6. Add the models to the config
+- In `config.py`, change the `MODELS` line to:
+    ```python
+    MODELS = ["baseline", "xgboost", "lstm"]
+    ```
+- Commit your changes
+
+#### 7. Add the models to the pipeline
+- In `main.py`, add these imports right after `from models.baseline import train_baseline`:
+    ```python
+    from models.xgboost_model import train_xgboost
+    from models.lstm import train_lstm
+    ```
+- Then add these lines right after `train_baseline(museum)`:
+    ```python
+                elif model == "xgboost":
+                    train_xgboost(museum)
+                elif model == "lstm":
+                    train_lstm(museum)
+    ```
+- Commit your changes
+
+#### 8. Document the models
+- Add this section to the end of `README.md`:
+    ```
+    ## Models
+
+    - `baseline`: historical monthly average
+    - `xgboost`: XGBoost, gradient-boosted decision trees
+    - `lstm`: LSTM neural network
+    ```
+- Commit your changes
+
+#### 9. Open your merge request
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 1
+
+### <u>Everyone: End of Phase 3</u>
+
+#### 1. Merge the merge requests, one at a time
+Follow these steps in order. Wait for each step to be done before moving on to the next:
+
+1. **Participant 2:** review and merge Participant 1's merge request
+2. **Participant 2:** merge the latest `final-main` into your branch. You will get conflicts in 3 files. Resolve them so that:
+    - In `config.py`, replace the whole conflict, including the markers (`<<<<<<<`, `=======`, `>>>>>>>`), with this one line:
+    ```python
+    MODELS = ["baseline", "sarimax", "holt_winters", "svr", "rf"]
+    ```
+    - `main.py` looks like this:
+    ```python
+    """Run the minions visitorship forecasting pipeline."""
+    from config import MODELS, MUSEUMS
+    from models.baseline import train_baseline
+    from models.holt_winters import train_holt_winters
+    from models.rf import train_rf
+    from models.sarimax import train_sarimax
+    from models.svr import train_svr
+    from src.clean_data import clean_visitorship
+    from src.features import add_lags, add_month_cycle, add_monthly_avg
+    from src.fetch_singstat import fetch_visitorship
+    from src.split import split_train_test
+
+
+    def main():
+        """Fetch, clean and split each museum's data, then train every model on it."""
+        for museum in MUSEUMS:
+            print(f"\n===== {museum} =====")
+            fetch_visitorship(museum)
+            clean_visitorship(museum)
+            split_train_test(museum)
+            add_lags(museum)
+            add_monthly_avg(museum)
+            add_month_cycle(museum)
+
+            for model in MODELS:
+                # Each model has its own training function in the models/ folder
+                if model == "baseline":
+                    train_baseline(museum)
+                elif model == "sarimax":
+                    train_sarimax(museum)
+                elif model == "holt_winters":
+                    train_holt_winters(museum)
+                elif model == "svr":
+                    train_svr(museum)
+                elif model == "rf":
+                    train_rf(museum)
+
+
+    if __name__ == "__main__":
+        main()
+    ```
+    - `README.md` ends with one `## Models` section, like this:
+    ```
+    ## Models
+
+    - `baseline`: historical monthly average
+    - `sarimax`: SARIMAX, seasonal ARIMA with the features as extra inputs
+    - `holt_winters`: Holt-Winters exponential smoothing
+    - `svr`: Support Vector Regression
+    - `rf`: Random Forest
+    ```
+
+    Check that the pipeline runs, then push your branch
+3. **Participant 3:** review and merge Participant 2's merge request
+4. **Participant 3:** merge the latest `final-main` into your branch. You will get conflicts in the same 3 files. Resolve them so that:
+    - In `config.py`, replace the whole conflict, including the markers (`<<<<<<<`, `=======`, `>>>>>>>`), with this one line:
+    ```python
+    MODELS = ["baseline", "sarimax", "holt_winters", "svr", "rf", "xgboost", "lstm"]
+    ```
+    - `main.py` looks like this:
+    ```python
+    """Run the minions visitorship forecasting pipeline."""
+    from config import MODELS, MUSEUMS
+    from models.baseline import train_baseline
+    from models.holt_winters import train_holt_winters
+    from models.lstm import train_lstm
+    from models.rf import train_rf
+    from models.sarimax import train_sarimax
+    from models.svr import train_svr
+    from models.xgboost_model import train_xgboost
+    from src.clean_data import clean_visitorship
+    from src.features import add_lags, add_month_cycle, add_monthly_avg
+    from src.fetch_singstat import fetch_visitorship
+    from src.split import split_train_test
+
+
+    def main():
+        """Fetch, clean and split each museum's data, then train every model on it."""
+        for museum in MUSEUMS:
+            print(f"\n===== {museum} =====")
+            fetch_visitorship(museum)
+            clean_visitorship(museum)
+            split_train_test(museum)
+            add_lags(museum)
+            add_monthly_avg(museum)
+            add_month_cycle(museum)
+
+            for model in MODELS:
+                # Each model has its own training function in the models/ folder
+                if model == "baseline":
+                    train_baseline(museum)
+                elif model == "sarimax":
+                    train_sarimax(museum)
+                elif model == "holt_winters":
+                    train_holt_winters(museum)
+                elif model == "svr":
+                    train_svr(museum)
+                elif model == "rf":
+                    train_rf(museum)
+                elif model == "xgboost":
+                    train_xgboost(museum)
+                elif model == "lstm":
+                    train_lstm(museum)
+
+
+    if __name__ == "__main__":
+        main()
+    ```
+    - `README.md` ends with one `## Models` section, like this:
+    ```
+    ## Models
+
+    - `baseline`: historical monthly average
+    - `sarimax`: SARIMAX, seasonal ARIMA with the features as extra inputs
+    - `holt_winters`: Holt-Winters exponential smoothing
+    - `svr`: Support Vector Regression
+    - `rf`: Random Forest
+    - `xgboost`: XGBoost, gradient-boosted decision trees
+    - `lstm`: LSTM neural network
+    ```
+
+    Check that the pipeline runs, then push your branch
+5. **Participant 1:** review and merge Participant 3's merge request
+
+#### 2. Run the pipeline
+Once all 3 merge requests have been merged:
+
+- Get the latest `final-main`
+- Run the pipeline. For each museum, you should now see all 7 models being trained:
+    ```
+
+    ===== ACM =====
+    Fetching ACM monthly visitorship from SingStat
+    Cleaning ACM data: removing missing months and closures
+    Splitting ACM data: train on Jan 2014 to Mar 2024, test on Apr 2024 to Mar 2026
+    Adding lag features for ACM: visitorship 1, 2 and 12 months before
+    Adding monthly_avg feature for ACM: average visitorship for each calendar month
+    Adding sin_month and cos_month features for ACM: the month as a repeating cycle
+    Training baseline (historical monthly average) for ACM
+    Training SARIMAX for ACM
+    Training Holt-Winters for ACM
+    Training SVR for ACM
+    Training Random Forest for ACM
+    Training XGBoost for ACM
+    Training LSTM for ACM
 
     ===== IHC =====
     ...
