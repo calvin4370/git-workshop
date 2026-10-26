@@ -19,7 +19,6 @@ For each session, follow along the session materials in the `sessions` folder
 - Session 4: Safe Undo of Code Changes
 - Session 5: Merge Requests and Code Review
 - Session 6: Team Workflow Standards
-- Session 7: Reinforcement Lab?
 
 Session 0 is a pre-workshop session to set up the required environment on analytics@gov and Gitlab
 
