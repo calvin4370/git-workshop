@@ -2629,3 +2629,552 @@ Once all the merge requests have been merged:
     - For NMS, you should also see `Removing closure months for NMS: Jan 2021 to Jun 2021`, and each museum is now fetched from its own SingStat table
 
 <hr>
+
+## Phase 6: Bug Fixes, Tuning and Forecasts
+
+### <u>Participant 1</u>
+
+#### 1. Notice a bug, and open an issue for it
+- Get the latest `final-main`, and run the pipeline
+- You notice that each museum's report is written **7 times**, once after every model, and it picks the model with the **highest** MAPE, which is the worst model
+- Create an issue for it, and assign it to **Participant 2** to fix:
+    - Title: `Report is written after every model, and picks the worst model`
+    - Description: `When running the pipeline, the report for each museum is written after every model instead of once, and it picks the model with the highest MAPE. It should be written once per museum, after all models, and pick the model with the lowest MAPE.`
+
+#### 2. Fix the bug assigned to you
+- Participant 3 has assigned you the issue `Models are saved to the code folder, with the wrong names`
+- Create a branch for this issue from the latest `final-main`, following the branch naming convention for bug fixes
+- This time, only a few lines are wrong, so fix them directly:
+- In `main.py`, change the line:
+    ```python
+                save_model(model, museum)
+    ```
+    to:
+    ```python
+                save_model(museum, model)
+    ```
+- In `src/save_models.py`, change the line:
+    ```python
+        print(f"    Saved to models/{museum}_{model}.joblib")
+    ```
+    to:
+    ```python
+        print(f"    Saved to outputs/models/{museum}_{model}.joblib")
+    ```
+- Commit both files together, in **one** commit
+- Push your branch, and open a merge request into `final-main` that closes the issue
+- Your reviewer and assignee is Participant 3, who opened the issue
+
+#### 3. Create an issue for your new task
+- Title: `Tune each model with Optuna`
+- Description: `Tune the hyperparameters of every model except the baseline with Optuna, before training it.`
+
+#### 4. Start the task
+- Go back to your branch from your Phase 5 task (pretend you forgot to switch away from it)
+- Create `src/tune.py`:
+    ```python
+    """Tune each model's hyperparameters with Optuna."""
+    import time
+
+    from config import N_TRIALS
+
+
+    def tune_model(museum, model):
+        """Find the best hyperparameters for one model with Optuna.
+
+        Optuna tries different combinations of hyperparameters, and keeps the one
+        with the lowest error on a validation set taken from the training data.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+            model (str): The model's name, e.g. "sarimax".
+        """
+        print(f"Tuning {model} for {museum} with Optuna ({N_TRIALS} trials)")
+        time.sleep(0.2)  # Pretend to take time, like real tuning would
+    ```
+- Commit your changes, and push them
+
+#### 5. Oops, wrong branch, and it's already pushed
+- You realise you committed and pushed onto your Phase 5 task branch, which has already been merged
+- Copy the commit onto a new branch for your issue, created from the latest `final-main`, and push the new branch
+- Then undo the commit on your Phase 5 task branch. As it has already been pushed, undo it safely, without rewriting its history, and push
+
+#### 6. Continue on your new branch
+- Switch to your new branch, and check that `src/tune.py` is there
+
+#### 7. Add the setting, the library, and the pipeline step
+- In `config.py`, add this to the end of the file:
+    ```python
+    # Number of Optuna trials when tuning each model
+    N_TRIALS = 50
+    ```
+- Add this line to the end of `requirements.txt`, and install it in your virtual environment:
+    ```
+    optuna==5.0.0
+    ```
+- In `main.py`, add this import right after `from src.split import split_train_test`:
+    ```python
+    from src.tune import tune_model
+    ```
+- Then add these lines right after `for model in MODELS:`:
+    ```python
+                # The baseline has no hyperparameters to tune
+                if model != "baseline":
+                    tune_model(museum, model)
+    ```
+- Commit your changes. Keep them atomic: one commit for the config and requirements, and one for `main.py`
+
+#### 8. Document it
+- Add this section to the end of `README.md`:
+    ```
+    ## Hyperparameter Tuning
+
+    Each model except the baseline is tuned with Optuna. The number of trials is set by `N_TRIALS` in `config.py`.
+    ```
+- Commit your changes
+
+#### 9. Open your merge request
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 3
+
+### <u>Participant 2</u>
+
+#### 1. Notice a bug, and open an issue for it
+- Get the latest `final-main`, and run the pipeline
+- You notice that every model's plot says `Plotting baseline forecast`, and every plot is saved to the same file, e.g. `outputs/plots/ACM.png`, so they overwrite each other
+- Create an issue for it, and assign it to **Participant 3** to fix:
+    - Title: `All plots are of the baseline, and overwrite each other`
+    - Description: `When running the pipeline, every model's plot is of the baseline, and all the plots for a museum are saved to the same file. Each model should have its own plot, saved to its own file.`
+
+#### 2. Fix the bug assigned to you
+- Participant 1 has assigned you the issue `Report is written after every model, and picks the worst model`
+- Create a branch for this issue from the latest `final-main`, following the branch naming convention for bug fixes
+- This time, only a few lines are wrong, so fix them directly:
+- In `main.py`, move `write_report(museum)` out of the `for model in MODELS:` loop, by removing 4 spaces of indentation, so it lines up with `for model in MODELS:`. Change the line:
+    ```python
+                write_report(museum)
+    ```
+    to:
+    ```python
+            write_report(museum)
+    ```
+- In `src/report.py`, change the line:
+    ```python
+        print(f"Writing report for {museum}: picking the model with the highest MAPE as the best model")
+    ```
+    to:
+    ```python
+        print(f"Writing report for {museum}: picking the model with the lowest MAPE as the best model")
+    ```
+- Commit both files together, in **one** commit
+- Push your branch, and open a merge request into `final-main` that closes the issue
+- Your reviewer and assignee is Participant 1, who opened the issue
+
+#### 3. Create an issue for your new task
+- Title: `Forecast visitorship for Apr 2026 to Mar 2028`
+- Description: `Forecast each museum's monthly visitorship for Apr 2026 to Mar 2028 with its best model.`
+
+#### 4. Start the task
+- Go back to your branch from your Phase 5 task (pretend you forgot to switch away from it)
+- Create `src/forecast.py`:
+    ```python
+    """Forecast future visitorship with the best model."""
+    import time
+
+    from config import FORECAST_PERIOD
+
+
+    def forecast_visitorship(museum):
+        """Forecast one museum's monthly visitorship with its best model.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        print(f"Forecasting {museum} visitorship for {FORECAST_PERIOD} with the best model")
+        print(f"    Saved to outputs/forecasts/{museum}_forecast.csv")
+        time.sleep(0.2)  # Pretend to take time, like a real forecast would
+    ```
+- Commit your changes, and push them
+
+#### 5. Oops, wrong branch, and it's already pushed
+- You realise you committed and pushed onto your Phase 5 task branch, which has already been merged
+- Copy the commit onto a new branch for your issue, created from the latest `final-main`, and push the new branch
+- Then undo the commit on your Phase 5 task branch. As it has already been pushed, undo it safely, without rewriting its history, and push
+
+#### 6. Continue on your new branch
+- Switch to your new branch, and check that `src/forecast.py` is there
+
+#### 7. Add the setting and the pipeline step
+- In `config.py`, add this to the end of the file:
+    ```python
+    # Period to forecast with the best model
+    FORECAST_PERIOD = "Apr 2026 to Mar 2028"
+    ```
+- In `main.py`, add this import right after `from src.fetch_singstat import fetch_visitorship`:
+    ```python
+    from src.forecast import forecast_visitorship
+    ```
+- Then add this line right after `write_report(museum)`. Note it has 8 spaces of indentation, so it runs once per museum, after all the models:
+    ```python
+            forecast_visitorship(museum)
+    ```
+- Commit your changes. Keep them atomic: one commit for the config, and one for `main.py`
+
+#### 8. Document it
+- Add this section to the end of `README.md`:
+    ```
+    ## Forecast
+
+    For each museum, the best model forecasts the monthly visitorship for Apr 2026 to Mar 2028 (`FORECAST_PERIOD` in `config.py`). The forecasts are saved to `outputs/forecasts/`.
+    ```
+- Commit your changes
+
+#### 9. Open your merge request
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 1
+
+### <u>Participant 3</u>
+
+#### 1. Notice a bug, and open an issue for it
+- Get the latest `final-main`, and run the pipeline
+- You notice that the models are saved with the museum and model the wrong way round, e.g. `Saving ACM for baseline`, and into the `models/` folder, which holds the models' **code** and is not gitignored
+- Create an issue for it, and assign it to **Participant 1** to fix:
+    - Title: `Models are saved to the code folder, with the wrong names`
+    - Description: `When running the pipeline, models are saved as e.g. Saving ACM for baseline, into the models/ folder which holds our code. They should be saved as Saving baseline for ACM, into outputs/models/.`
+
+#### 2. Fix the bug assigned to you
+- Participant 2 has assigned you the issue `All plots are of the baseline, and overwrite each other`
+- Create a branch for this issue from the latest `final-main`, following the branch naming convention for bug fixes
+- This time, only a few lines are wrong, so fix them directly:
+- In `main.py`, change the line:
+    ```python
+                plot_forecast(museum, "baseline")
+    ```
+    to:
+    ```python
+                plot_forecast(museum, model)
+    ```
+- In `src/plots.py`, change the line:
+    ```python
+        print(f"    Saved to outputs/plots/{museum}.png")
+    ```
+    to:
+    ```python
+        print(f"    Saved to outputs/plots/{museum}_{model}.png")
+    ```
+- Commit both files together, in **one** commit
+- Push your branch, and open a merge request into `final-main` that closes the issue
+- Your reviewer and assignee is Participant 2, who opened the issue
+
+#### 3. Create an issue for your new task
+- Title: `Add a pipeline summary and project structure`
+- Description: `Print a summary when the pipeline finishes, and document the project structure in the README.`
+
+#### 4. Start the task
+- Go back to your branch from your Phase 5 task (pretend you forgot to switch away from it)
+- Create `src/summary.py`:
+    ```python
+    """Summarise the pipeline run."""
+    from config import MODELS, MUSEUMS
+
+
+    def print_summary():
+        """Print a summary of everything the pipeline did."""
+        print(f"\nPipeline finished: {len(MODELS)} models trained for each of {len(MUSEUMS)} museums")
+        print("    Plots, saved models, reports and forecasts are in outputs/")
+    ```
+- Commit your changes, and push them
+
+#### 5. Oops, wrong branch, and it's already pushed
+- You realise you committed and pushed onto your Phase 5 task branch, which has already been merged
+- Copy the commit onto a new branch for your issue, created from the latest `final-main`, and push the new branch
+- Then undo the commit on your Phase 5 task branch. As it has already been pushed, undo it safely, without rewriting its history, and push
+
+#### 6. Continue on your new branch
+- Switch to your new branch, and check that `src/summary.py` is there
+
+#### 7. Add it to the pipeline
+- In `main.py`, add this import right after `from src.split import split_train_test`:
+    ```python
+    from src.summary import print_summary
+    ```
+- Then add this line as the very last line of the `main()` function, after both loops. Note it has only 4 spaces of indentation, so it runs once at the end:
+    ```python
+        print_summary()
+    ```
+- Commit your changes
+
+#### 8. Document the project structure
+- Add this section to the end of `README.md`:
+    ````
+    ## Project Structure
+
+    ```
+    (repo root)
+    ├── README.md
+    ├── requirements.txt
+    ├── .gitignore
+    ├── .env                 ← gitignored
+    ├── config.py            ← settings
+    ├── main.py              ← runs the pipeline
+    ├── src/                 ← data, features, evaluation and outputs
+    ├── models/              ← one file per model
+    └── outputs/             ← gitignored (plots, models, reports, forecasts)
+    ```
+    ````
+- Commit your changes
+
+#### 9. Open your merge request
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 2
+
+### <u>Everyone: End of Phase 6</u>
+
+#### 1. Merge the bug fixes, one at a time
+Follow these steps in order. Wait for each step to be done before moving on to the next:
+
+1. **Participant 3:** review and merge Participant 1's bug fix merge request
+2. **Participant 3:** merge the latest `final-main` into your bug fix branch. You will get a conflict in `main.py`. Resolve it so that the end of the `for model in MODELS:` loop looks like this:
+    ```python
+                evaluate_model(museum, model)
+                plot_forecast(museum, model)
+                save_model(museum, model)
+                write_report(museum)
+    ```
+
+    Check that the pipeline runs, then push your branch
+3. **Participant 2:** review and merge Participant 3's bug fix merge request
+4. **Participant 2:** merge the latest `final-main` into your bug fix branch. You will get a conflict in `main.py`. Resolve it so that the end of the loops looks like this, with `write_report(museum)` outside the `for model in MODELS:` loop:
+    ```python
+                evaluate_model(museum, model)
+                plot_forecast(museum, model)
+                save_model(museum, model)
+            write_report(museum)
+    ```
+
+    Check that the pipeline runs, then push your branch
+5. **Participant 1:** review and merge Participant 2's bug fix merge request
+
+#### 2. Merge the new tasks, one at a time
+Follow these steps in order. Wait for each step to be done before moving on to the next:
+
+1. **Participant 3:** review and merge Participant 1's merge request
+2. **Participant 2:** merge the latest `final-main` into your task branch. You will get conflicts in 3 files. Resolve them so that:
+    - `config.py` ends with:
+    ```python
+    # Number of Optuna trials when tuning each model
+    N_TRIALS = 50
+
+    # Period to forecast with the best model
+    FORECAST_PERIOD = "Apr 2026 to Mar 2028"
+    ```
+    - `main.py` looks like this:
+    ```python
+    """Run the minions visitorship forecasting pipeline."""
+    from config import MODELS, MUSEUMS
+    from models.baseline import train_baseline
+    from models.holt_winters import train_holt_winters
+    from models.lstm import train_lstm
+    from models.rf import train_rf
+    from models.sarimax import train_sarimax
+    from models.svr import train_svr
+    from models.xgboost_model import train_xgboost
+    from src.clean_data import clean_visitorship
+    from src.evaluate import evaluate_model
+    from src.features import add_lags, add_month_cycle, add_monthly_avg
+    from src.fetch_singstat import fetch_visitorship
+    from src.forecast import forecast_visitorship
+    from src.plots import plot_forecast
+    from src.report import write_report
+    from src.save_models import save_model
+    from src.split import split_train_test
+    from src.tune import tune_model
+
+
+    def main():
+        """Fetch, clean and split each museum's data, then train every model on it."""
+        for museum in MUSEUMS:
+            print(f"\n===== {museum} =====")
+            fetch_visitorship(museum)
+            clean_visitorship(museum)
+            split_train_test(museum)
+            add_lags(museum)
+            add_monthly_avg(museum)
+            add_month_cycle(museum)
+
+            for model in MODELS:
+                # The baseline has no hyperparameters to tune
+                if model != "baseline":
+                    tune_model(museum, model)
+                # Each model has its own training function in the models/ folder
+                if model == "baseline":
+                    train_baseline(museum)
+                elif model == "sarimax":
+                    train_sarimax(museum)
+                elif model == "holt_winters":
+                    train_holt_winters(museum)
+                elif model == "svr":
+                    train_svr(museum)
+                elif model == "rf":
+                    train_rf(museum)
+                elif model == "xgboost":
+                    train_xgboost(museum)
+                elif model == "lstm":
+                    train_lstm(museum)
+                evaluate_model(museum, model)
+                plot_forecast(museum, model)
+                save_model(museum, model)
+            write_report(museum)
+            forecast_visitorship(museum)
+
+
+    if __name__ == "__main__":
+        main()
+    ```
+    - `README.md` ends with these 2 sections:
+    ```
+    ## Hyperparameter Tuning
+
+    Each model except the baseline is tuned with Optuna. The number of trials is set by `N_TRIALS` in `config.py`.
+
+    ## Forecast
+
+    For each museum, the best model forecasts the monthly visitorship for Apr 2026 to Mar 2028 (`FORECAST_PERIOD` in `config.py`). The forecasts are saved to `outputs/forecasts/`.
+    ```
+
+    Check that the pipeline runs, then push your branch
+3. **Participant 1:** review and merge Participant 2's merge request
+4. **Participant 3:** merge the latest `final-main` into your task branch. You will get conflicts in 2 files. Resolve them so that:
+    - `main.py` looks like this:
+    ```python
+    """Run the minions visitorship forecasting pipeline."""
+    from config import MODELS, MUSEUMS
+    from models.baseline import train_baseline
+    from models.holt_winters import train_holt_winters
+    from models.lstm import train_lstm
+    from models.rf import train_rf
+    from models.sarimax import train_sarimax
+    from models.svr import train_svr
+    from models.xgboost_model import train_xgboost
+    from src.clean_data import clean_visitorship
+    from src.evaluate import evaluate_model
+    from src.features import add_lags, add_month_cycle, add_monthly_avg
+    from src.fetch_singstat import fetch_visitorship
+    from src.forecast import forecast_visitorship
+    from src.plots import plot_forecast
+    from src.report import write_report
+    from src.save_models import save_model
+    from src.split import split_train_test
+    from src.summary import print_summary
+    from src.tune import tune_model
+
+
+    def main():
+        """Fetch, clean and split each museum's data, then train every model on it."""
+        for museum in MUSEUMS:
+            print(f"\n===== {museum} =====")
+            fetch_visitorship(museum)
+            clean_visitorship(museum)
+            split_train_test(museum)
+            add_lags(museum)
+            add_monthly_avg(museum)
+            add_month_cycle(museum)
+
+            for model in MODELS:
+                # The baseline has no hyperparameters to tune
+                if model != "baseline":
+                    tune_model(museum, model)
+                # Each model has its own training function in the models/ folder
+                if model == "baseline":
+                    train_baseline(museum)
+                elif model == "sarimax":
+                    train_sarimax(museum)
+                elif model == "holt_winters":
+                    train_holt_winters(museum)
+                elif model == "svr":
+                    train_svr(museum)
+                elif model == "rf":
+                    train_rf(museum)
+                elif model == "xgboost":
+                    train_xgboost(museum)
+                elif model == "lstm":
+                    train_lstm(museum)
+                evaluate_model(museum, model)
+                plot_forecast(museum, model)
+                save_model(museum, model)
+            write_report(museum)
+            forecast_visitorship(museum)
+
+        print_summary()
+
+
+    if __name__ == "__main__":
+        main()
+    ```
+    - `README.md` ends with these 3 sections:
+    ````
+    ## Hyperparameter Tuning
+
+    Each model except the baseline is tuned with Optuna. The number of trials is set by `N_TRIALS` in `config.py`.
+
+    ## Forecast
+
+    For each museum, the best model forecasts the monthly visitorship for Apr 2026 to Mar 2028 (`FORECAST_PERIOD` in `config.py`). The forecasts are saved to `outputs/forecasts/`.
+
+    ## Project Structure
+
+    ```
+    (repo root)
+    ├── README.md
+    ├── requirements.txt
+    ├── .gitignore
+    ├── .env                 ← gitignored
+    ├── config.py            ← settings
+    ├── main.py              ← runs the pipeline
+    ├── src/                 ← data, features, evaluation and outputs
+    ├── models/              ← one file per model
+    └── outputs/             ← gitignored (plots, models, reports, forecasts)
+    ```
+    ````
+
+    Check that the pipeline runs, then push your branch
+5. **Participant 2:** review and merge Participant 3's merge request
+
+#### 3. Run the pipeline
+Once all the merge requests have been merged:
+
+- Get the latest `final-main`
+- Install the new package in `requirements.txt` into your virtual environment
+- Run the pipeline. The bugs are fixed, and each model is now tuned before training, e.g. for ACM:
+    ```
+
+    ===== ACM =====
+    Fetching ACM monthly visitorship from SingStat (table M650561)
+    Cleaning ACM data: removing missing months and closures
+    Splitting ACM data: train on Jan 2014 to Mar 2024, test on Apr 2024 to Mar 2026
+    Adding lag features for ACM: visitorship 1, 2 and 12 months before
+    Adding monthly_avg feature for ACM: average visitorship for each calendar month
+    Adding sin_month and cos_month features for ACM: the month as a repeating cycle
+    Training baseline (historical monthly average) for ACM
+    Evaluating baseline for ACM on the test set (Apr 2024 to Mar 2026)
+        RMSE and MAPE calculated
+    Plotting baseline forecast vs actual for ACM
+        Saved to outputs/plots/ACM_baseline.png
+    Saving baseline for ACM
+        Saved to outputs/models/ACM_baseline.joblib
+    Tuning sarimax for ACM with Optuna (50 trials)
+    Training SARIMAX for ACM
+    ...
+    Writing report for ACM: picking the model with the lowest MAPE as the best model
+        Saved to outputs/reports/ACM_report.md
+    Forecasting ACM visitorship for Apr 2026 to Mar 2028 with the best model
+        Saved to outputs/forecasts/ACM_forecast.csv
+    ```
+- At the very end, you should see:
+    ```
+
+    Pipeline finished: 7 models trained for each of 5 museums
+        Plots, saved models, reports and forecasts are in outputs/
+    ```
+
+<hr>
