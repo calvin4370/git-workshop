@@ -1838,3 +1838,283 @@ Once all 3 merge requests have been merged:
     ```
 
 <hr>
+
+## Phase 4: Museums and Evaluation
+
+### <u>Participant 1</u>
+
+#### 1. Create an issue
+- Title: `Add NMS and museum closures`
+- Description: `Add the National Museum of Singapore (NMS), and remove the months when a museum was closed from its data.`
+- Create a branch for your issue from the latest `final-main`
+
+#### 2. Add NMS
+- In `config.py`, change the `MUSEUMS` line to:
+    ```python
+    MUSEUMS = ["ACM", "IHC", "MHC", "NMS"]
+    ```
+- Add this section to the end of `README.md`:
+    ```
+    ## Museums
+
+    - `NMS`: National Museum of Singapore
+    ```
+- Commit your changes
+
+#### 3. Remove closure months from the data
+- Create `src/closures.py`:
+    ```python
+    """Handle the months when a museum was closed."""
+    import time
+
+    # Months when each museum was closed, e.g. for renovation
+    CLOSURES = {
+        "NMS": "Jan 2021 to Jun 2021",
+    }
+
+
+    def remove_closures(museum):
+        """Remove the months when a museum was closed from its data.
+
+        Closed months have zero visitors, which would mislead the models.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        if CLOSURES:
+            print(f"Removing closure months for {museum}: {CLOSURES['NMS']}")
+            time.sleep(0.2)  # Pretend to take time, like real cleaning would
+    ```
+- Replace the whole of `src/clean_data.py` with:
+    ```python
+    """Clean the raw visitorship data."""
+    import time
+
+    from src.closures import remove_closures
+
+
+    def clean_visitorship(museum):
+        """Clean one museum's monthly visitorship data.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        # Months when a museum was closed have zero visitors, and would mislead the models
+        print(f"Cleaning {museum} data: removing missing months and closures")
+        time.sleep(0.2)  # Pretend to take time, like real cleaning would
+        remove_closures(museum)
+    ```
+- Commit both files together, in **one** commit
+
+#### 4. Open your merge request
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 3
+
+### <u>Participant 2</u>
+
+#### 1. Create an issue
+- Title: `Evaluate models with RMSE and MAPE`
+- Description: `Evaluate every model on the test set using RMSE and MAPE.`
+- Create a branch for your issue from the latest `final-main`
+
+#### 2. Add the evaluation
+- Create `src/evaluate.py`:
+    ```python
+    """Evaluate the models' forecasts."""
+    import time
+
+
+    def evaluate_model(museum, model):
+        """Calculate the RMSE and MAPE of one model's forecasts on the test set.
+
+        RMSE (root mean squared error) shows the typical size of the errors, in visitors.
+        MAPE (mean absolute percentage error) shows the errors as a percentage, so
+        museums of different sizes can be compared.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+            model (str): The model's name, e.g. "sarimax".
+        """
+        print(f"Evaluating {model} for {museum} on the training set (Jan 2014 to Mar 2024)")
+        print("    RMSE and MAE calculated")
+        time.sleep(0.2)  # Pretend to take time, like real evaluation would
+    ```
+- Commit your changes
+
+#### 3. Evaluate every model in the pipeline
+- In `main.py`, add this import right after `from src.clean_data import clean_visitorship`:
+    ```python
+    from src.evaluate import evaluate_model
+    ```
+- Then, at the end of the `for model in MODELS:` loop, right after the last `elif` block (`train_lstm(museum)`), add this line. Note it is indented to line up with `if model == "baseline":`, so it runs for every model:
+    ```python
+                evaluate_model(museum, model)
+    ```
+- Commit your changes
+
+#### 4. Document the evaluation
+- Add this section to the end of `README.md`:
+    ```
+    ## Evaluation
+
+    Each model is evaluated on the test set (Apr 2024 to Mar 2026) using:
+
+    - RMSE: the typical size of the errors, in visitors
+    - MAPE: the errors as a percentage, so museums of different sizes can be compared
+    ```
+- Commit your changes
+
+#### 5. Open your merge request
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 1
+
+### <u>Participant 3</u>
+
+#### 1. Create an issue
+- Title: `Add TPM and SingStat table IDs`
+- Description: `Add The Peranakan Museum (TPM), and fetch each museum's data from its own SingStat table.`
+- Create a branch for your issue from the latest `final-main`
+
+#### 2. Add TPM
+- In `config.py`, change the `MUSEUMS` line to:
+    ```python
+    MUSEUMS = ["ACM", "IHC", "MHC", "TPM"]
+    ```
+- Add this section to the end of `README.md`:
+    ```
+    ## Museums
+
+    - `TPM`: The Peranakan Museum
+    ```
+- Commit your changes
+
+#### 3. Fetch each museum from its own SingStat table
+- Create `src/singstat_series.py`:
+    ```python
+    """SingStat table IDs for each museum's monthly visitorship."""
+
+    # Each museum's visitorship is published in a different SingStat table
+    SERIES_IDS = {
+        "ACM": "M650561",
+        "IHC": "M650562",
+        "MHC": "M650563",
+        "NMS": "M650564",
+        "TPM": "M650565",
+    }
+
+
+    def get_series_id(museum):
+        """Get the SingStat table ID for one museum's visitorship.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+
+        Returns:
+            str: The SingStat table ID.
+        """
+        return SERIES_IDS["ACM"]
+    ```
+- Replace the whole of `src/fetch_singstat.py` with:
+    ```python
+    """Fetch monthly museum visitorship data from the SingStat API."""
+    import os
+    import time
+
+    from dotenv import load_dotenv
+
+    from src.singstat_series import get_series_id
+
+    # Read the API key from the .env file, so it is never written in the code
+    load_dotenv()
+    API_KEY = os.getenv("SINGSTAT_API_KEY")
+
+
+    def fetch_visitorship(museum):
+        """Fetch one museum's monthly visitorship data from SingStat.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        if API_KEY is None:
+            print("Error: SINGSTAT_API_KEY not found. Add it to your .env file")
+            return
+        series_id = get_series_id(museum)
+        print(f"Fetching {museum} monthly visitorship from SingStat (table {series_id})")
+        time.sleep(0.2)  # Pretend to take time, like a real API call would
+    ```
+- Commit both files together, in **one** commit
+
+#### 4. Open your merge request
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 2
+
+### <u>Everyone: End of Phase 4</u>
+
+#### 1. Merge the merge requests, one at a time
+Follow these steps in order. Wait for each step to be done before moving on to the next:
+
+1. **Participant 2:** review and merge Participant 3's merge request
+2. **Participant 2:** merge the latest `final-main` into your branch. You will get a conflict in `README.md`. Resolve it so that `README.md` ends with these 2 sections:
+    ```
+    ## Museums
+
+    - `TPM`: The Peranakan Museum
+
+    ## Evaluation
+
+    Each model is evaluated on the test set (Apr 2024 to Mar 2026) using:
+
+    - RMSE: the typical size of the errors, in visitors
+    - MAPE: the errors as a percentage, so museums of different sizes can be compared
+    ```
+
+    Check that the pipeline runs, then push your branch
+3. **Participant 1:** review and merge Participant 2's merge request
+4. **Participant 1:** merge the latest `final-main` into your branch. You will get conflicts in 2 files. Resolve them so that:
+    - In `config.py`, replace the whole conflict, including the markers (`<<<<<<<`, `=======`, `>>>>>>>`), with this one line:
+    ```python
+    MUSEUMS = ["ACM", "IHC", "MHC", "NMS", "TPM"]
+    ```
+    - `README.md` ends with these 2 sections:
+    ```
+    ## Museums
+
+    - `NMS`: National Museum of Singapore
+    - `TPM`: The Peranakan Museum
+
+    ## Evaluation
+
+    Each model is evaluated on the test set (Apr 2024 to Mar 2026) using:
+
+    - RMSE: the typical size of the errors, in visitors
+    - MAPE: the errors as a percentage, so museums of different sizes can be compared
+    ```
+
+    Check that the pipeline runs, then push your branch
+5. **Participant 3:** review and merge Participant 1's merge request
+
+#### 2. Run the pipeline
+Once all 3 merge requests have been merged:
+
+- Get the latest `final-main`
+- Run the pipeline. You should now see 5 museums, and an evaluation after each model is trained, e.g. for ACM:
+    ```
+
+    ===== ACM =====
+    Fetching ACM monthly visitorship from SingStat (table M650561)
+    Cleaning ACM data: removing missing months and closures
+    Removing closure months for ACM: Jan 2021 to Jun 2021
+    Splitting ACM data: train on Jan 2014 to Mar 2024, test on Apr 2024 to Mar 2026
+    Adding lag features for ACM: visitorship 1, 2 and 12 months before
+    Adding monthly_avg feature for ACM: average visitorship for each calendar month
+    Adding sin_month and cos_month features for ACM: the month as a repeating cycle
+    Training baseline (historical monthly average) for ACM
+    Evaluating baseline for ACM on the training set (Jan 2014 to Mar 2024)
+        RMSE and MAE calculated
+    Training SARIMAX for ACM
+    Evaluating sarimax for ACM on the training set (Jan 2014 to Mar 2024)
+        RMSE and MAE calculated
+    ...
+    ```
+
+<hr>
