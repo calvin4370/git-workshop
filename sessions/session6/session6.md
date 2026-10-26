@@ -2118,3 +2118,514 @@ Once all 3 merge requests have been merged:
     ```
 
 <hr>
+
+## Phase 5: Bug Fixes and Outputs
+
+### <u>Participant 1</u>
+
+#### 1. Notice a bug, and open an issue for it
+- Get the latest `final-main`, and run the pipeline
+- You notice that every museum is fetched from the **same** SingStat table, `M650561`, which is ACM's table
+- Create an issue for it, and assign it to **Participant 2** to fix:
+    - Title: `All museums are fetched from ACM's SingStat table`
+    - Description: `When running the pipeline, every museum prints (table M650561), which is ACM's SingStat table. Each museum should be fetched from its own table in src/singstat_series.py.`
+
+#### 2. Fix the bug assigned to you
+- Participant 3 has assigned you the issue `Models are evaluated on the training set with MAE`
+- Create a branch for this issue from the latest `final-main`, following the branch naming convention for bug fixes
+- The whole of the commit by Participant 2 that created `src/evaluate.py` was buggy. Find that commit, and revert it
+    - Note: until you finish the next step, the pipeline will not run
+- Then redo the change correctly:
+- Create `src/evaluate.py`:
+    ```python
+    """Evaluate the models' forecasts."""
+    import time
+
+
+    def evaluate_model(museum, model):
+        """Calculate the RMSE and MAPE of one model's forecasts on the test set.
+
+        RMSE (root mean squared error) shows the typical size of the errors, in visitors.
+        MAPE (mean absolute percentage error) shows the errors as a percentage, so
+        museums of different sizes can be compared.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+            model (str): The model's name, e.g. "sarimax".
+        """
+        print(f"Evaluating {model} for {museum} on the test set (Apr 2024 to Mar 2026)")
+        print("    RMSE and MAPE calculated")
+        time.sleep(0.2)  # Pretend to take time, like real evaluation would
+    ```
+- Commit your changes
+- Push your branch, and open a merge request into `final-main` that closes the issue
+- Your reviewer and assignee is Participant 3, who opened the issue
+
+#### 3. Create an issue for your new task
+- Title: `Plot each model's forecasts`
+- Description: `Save a plot of each model's forecast vs the actual visitorship, for every museum.`
+- Create a branch for your issue from the latest `final-main`
+
+#### 4. Add the code
+- Create `src/plots.py`:
+    ```python
+    """Plot each model's forecasts."""
+    import time
+
+
+    def plot_forecast(museum, model):
+        """Plot one model's forecast against the actual visitorship on the test set.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+            model (str): The model's name, e.g. "sarimax".
+        """
+        print(f"Plotting {model} forecast vs actual for {museum}")
+        print(f"    Saved to outputs/plots/{museum}.png")
+        time.sleep(0.2)  # Pretend to take time, like real plotting would
+    ```
+- Commit your changes
+
+#### 5. Add it to the pipeline
+- In `main.py`, add this import right after `from src.fetch_singstat import fetch_visitorship`:
+    ```python
+    from src.plots import plot_forecast
+    ```
+- Then add this line right after `evaluate_model(museum, model)`:
+    ```python
+                plot_forecast(museum, "baseline")
+    ```
+- Commit your changes
+
+#### 6. Document it
+- Add this section to the end of `README.md`:
+    ```
+    ## Plots
+
+    A plot of each model's forecast vs the actual visitorship is saved to `outputs/plots/`, for every museum.
+    ```
+- Commit your changes
+
+#### 7. Open your merge request
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 2
+
+### <u>Participant 2</u>
+
+#### 1. Notice a bug, and open an issue for it
+- Get the latest `final-main`, and run the pipeline
+- You notice that **every** museum prints `Removing closure months ...: Jan 2021 to Jun 2021`, but only NMS was closed
+- Create an issue for it, and assign it to **Participant 3** to fix:
+    - Title: `Closure months are removed for every museum`
+    - Description: `When running the pipeline, every museum prints Removing closure months: Jan 2021 to Jun 2021, but only NMS was closed then. Only museums in CLOSURES should have closure months removed, using their own dates.`
+
+#### 2. Fix the bug assigned to you
+- Participant 1 has assigned you the issue `All museums are fetched from ACM's SingStat table`
+- Create a branch for this issue from the latest `final-main`, following the branch naming convention for bug fixes
+- The whole of the commit by Participant 3 that created `src/singstat_series.py` and changed `src/fetch_singstat.py` was buggy. Find that commit, and revert it
+    - Note: until you finish the next step, the pipeline will not run
+- Then redo the change correctly:
+- Create `src/singstat_series.py`:
+    ```python
+    """SingStat table IDs for each museum's monthly visitorship."""
+
+    # Each museum's visitorship is published in a different SingStat table
+    SERIES_IDS = {
+        "ACM": "M650561",
+        "IHC": "M650562",
+        "MHC": "M650563",
+        "NMS": "M650564",
+        "TPM": "M650565",
+    }
+
+
+    def get_series_id(museum):
+        """Get the SingStat table ID for one museum's visitorship.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+
+        Returns:
+            str: The SingStat table ID.
+        """
+        return SERIES_IDS[museum]
+    ```
+- Replace the whole of `src/fetch_singstat.py` with:
+    ```python
+    """Fetch monthly museum visitorship data from the SingStat API."""
+    import os
+    import time
+
+    from dotenv import load_dotenv
+
+    from src.singstat_series import get_series_id
+
+    # Read the API key from the .env file, so it is never written in the code
+    load_dotenv()
+    API_KEY = os.getenv("SINGSTAT_API_KEY")
+
+
+    def fetch_visitorship(museum):
+        """Fetch one museum's monthly visitorship data from SingStat.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        if API_KEY is None:
+            print("Error: SINGSTAT_API_KEY not found. Add it to your .env file")
+            return
+        series_id = get_series_id(museum)
+        print(f"Fetching {museum} monthly visitorship from SingStat (table {series_id})")
+        time.sleep(0.2)  # Pretend to take time, like a real API call would
+    ```
+- Commit your changes
+- Push your branch, and open a merge request into `final-main` that closes the issue
+- Your reviewer and assignee is Participant 1, who opened the issue
+
+#### 3. Create an issue for your new task
+- Title: `Save the trained models`
+- Description: `Save each trained model to a file, so it can be reused without retraining.`
+- Create a branch for your issue from the latest `final-main`
+
+#### 4. Add the code
+- Create `src/save_models.py`:
+    ```python
+    """Save the trained models, so they can be reused without retraining."""
+    import time
+
+
+    def save_model(museum, model):
+        """Save one trained model to a file.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+            model (str): The model's name, e.g. "sarimax".
+        """
+        print(f"Saving {model} for {museum}")
+        print(f"    Saved to models/{museum}_{model}.joblib")
+        time.sleep(0.2)  # Pretend to take time, like really saving a model would
+    ```
+- Commit your changes
+
+#### 5. Add it to the pipeline
+- In `main.py`, add this import right after `from src.fetch_singstat import fetch_visitorship`:
+    ```python
+    from src.save_models import save_model
+    ```
+- Then add this line right after `evaluate_model(museum, model)`:
+    ```python
+                save_model(model, museum)
+    ```
+- Commit your changes
+
+#### 6. Document it
+- Add this section to the end of `README.md`:
+    ```
+    ## Saved Models
+
+    Each trained model is saved to `outputs/models/`, so it can be reused without retraining.
+    ```
+- Commit your changes
+
+#### 7. Open your merge request
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 3
+
+### <u>Participant 3</u>
+
+#### 1. Notice a bug, and open an issue for it
+- Get the latest `final-main`, and run the pipeline
+- You notice that every model is evaluated on the **training** set with **MAE**, but it should be the **test** set with **MAPE**
+- Create an issue for it, and assign it to **Participant 1** to fix:
+    - Title: `Models are evaluated on the training set with MAE`
+    - Description: `When running the pipeline, every model is evaluated on the training set (Jan 2014 to Mar 2024) with MAE. It should be evaluated on the test set (Apr 2024 to Mar 2026) with RMSE and MAPE.`
+
+#### 2. Fix the bug assigned to you
+- Participant 2 has assigned you the issue `Closure months are removed for every museum`
+- Create a branch for this issue from the latest `final-main`, following the branch naming convention for bug fixes
+- The whole of the commit by Participant 1 that created `src/closures.py` and changed `src/clean_data.py` was buggy. Find that commit, and revert it
+    - Note: until you finish the next step, the pipeline will not run
+- Then redo the change correctly:
+- Create `src/closures.py`:
+    ```python
+    """Handle the months when a museum was closed."""
+    import time
+
+    # Months when each museum was closed, e.g. for renovation
+    CLOSURES = {
+        "NMS": "Jan 2021 to Jun 2021",
+    }
+
+
+    def remove_closures(museum):
+        """Remove the months when a museum was closed from its data.
+
+        Closed months have zero visitors, which would mislead the models.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        if museum in CLOSURES:
+            print(f"Removing closure months for {museum}: {CLOSURES[museum]}")
+            time.sleep(0.2)  # Pretend to take time, like real cleaning would
+    ```
+- Replace the whole of `src/clean_data.py` with:
+    ```python
+    """Clean the raw visitorship data."""
+    import time
+
+    from src.closures import remove_closures
+
+
+    def clean_visitorship(museum):
+        """Clean one museum's monthly visitorship data.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        # Months when a museum was closed have zero visitors, and would mislead the models
+        print(f"Cleaning {museum} data: removing missing months and closures")
+        time.sleep(0.2)  # Pretend to take time, like real cleaning would
+        remove_closures(museum)
+    ```
+- Commit your changes
+- Push your branch, and open a merge request into `final-main` that closes the issue
+- Your reviewer and assignee is Participant 2, who opened the issue
+
+#### 3. Create an issue for your new task
+- Title: `Write a report for each museum`
+- Description: `Write a report of every model's errors on the test set for each museum, and pick the best model.`
+- Create a branch for your issue from the latest `final-main`
+
+#### 4. Add the code
+- Create `src/report.py`:
+    ```python
+    """Write a summary report for each museum."""
+    import time
+
+
+    def write_report(museum):
+        """Write a report of every model's errors on the test set for one museum.
+
+        The report also picks the best model, which is the one with the lowest MAPE.
+
+        Args:
+            museum (str): The museum's code, e.g. "ACM".
+        """
+        print(f"Writing report for {museum}: picking the model with the highest MAPE as the best model")
+        print(f"    Saved to outputs/reports/{museum}_report.md")
+        time.sleep(0.2)  # Pretend to take time, like really writing a report would
+    ```
+- Commit your changes
+
+#### 5. Add it to the pipeline
+- In `main.py`, add this import right after `from src.fetch_singstat import fetch_visitorship`:
+    ```python
+    from src.report import write_report
+    ```
+- Then add this line right after `evaluate_model(museum, model)`:
+    ```python
+                write_report(museum)
+    ```
+- Commit your changes
+
+#### 6. Document it
+- Add this section to the end of `README.md`:
+    ```
+    ## Reports
+
+    A report of every model's errors on the test set is saved to `outputs/reports/` for each museum. It also picks the best model, which is the one with the lowest MAPE.
+    ```
+- Commit your changes
+
+#### 7. Open your merge request
+- Push your branch, and open a merge request into `final-main` that closes your issue
+- Your reviewer and assignee is Participant 1
+
+### <u>Everyone: End of Phase 5</u>
+
+#### 1. Merge the bug fixes
+These merge requests change different files, so they can be merged in any order, without conflicts:
+
+1. **Participant 3:** review and merge Participant 1's bug fix merge request
+2. **Participant 1:** review and merge Participant 2's bug fix merge request
+3. **Participant 2:** review and merge Participant 3's bug fix merge request
+
+#### 2. Merge the new tasks, one at a time
+Follow these steps in order. Wait for each step to be done before moving on to the next:
+
+1. **Participant 3:** review and merge Participant 2's merge request
+2. **Participant 3:** merge the latest `final-main` into your branch. You will get conflicts in 2 files. Resolve them so that:
+    - `main.py` looks like this:
+    ```python
+    """Run the minions visitorship forecasting pipeline."""
+    from config import MODELS, MUSEUMS
+    from models.baseline import train_baseline
+    from models.holt_winters import train_holt_winters
+    from models.lstm import train_lstm
+    from models.rf import train_rf
+    from models.sarimax import train_sarimax
+    from models.svr import train_svr
+    from models.xgboost_model import train_xgboost
+    from src.clean_data import clean_visitorship
+    from src.evaluate import evaluate_model
+    from src.features import add_lags, add_month_cycle, add_monthly_avg
+    from src.fetch_singstat import fetch_visitorship
+    from src.report import write_report
+    from src.save_models import save_model
+    from src.split import split_train_test
+
+
+    def main():
+        """Fetch, clean and split each museum's data, then train every model on it."""
+        for museum in MUSEUMS:
+            print(f"\n===== {museum} =====")
+            fetch_visitorship(museum)
+            clean_visitorship(museum)
+            split_train_test(museum)
+            add_lags(museum)
+            add_monthly_avg(museum)
+            add_month_cycle(museum)
+
+            for model in MODELS:
+                # Each model has its own training function in the models/ folder
+                if model == "baseline":
+                    train_baseline(museum)
+                elif model == "sarimax":
+                    train_sarimax(museum)
+                elif model == "holt_winters":
+                    train_holt_winters(museum)
+                elif model == "svr":
+                    train_svr(museum)
+                elif model == "rf":
+                    train_rf(museum)
+                elif model == "xgboost":
+                    train_xgboost(museum)
+                elif model == "lstm":
+                    train_lstm(museum)
+                evaluate_model(museum, model)
+                save_model(model, museum)
+                write_report(museum)
+
+
+    if __name__ == "__main__":
+        main()
+    ```
+    - `README.md` ends with these 2 sections:
+    ```
+    ## Saved Models
+
+    Each trained model is saved to `outputs/models/`, so it can be reused without retraining.
+
+    ## Reports
+
+    A report of every model's errors on the test set is saved to `outputs/reports/` for each museum. It also picks the best model, which is the one with the lowest MAPE.
+    ```
+
+    Check that the pipeline runs, then push your branch
+3. **Participant 1:** review and merge Participant 3's merge request
+4. **Participant 1:** merge the latest `final-main` into your branch. You will get conflicts in 2 files. Resolve them so that:
+    - `main.py` looks like this:
+    ```python
+    """Run the minions visitorship forecasting pipeline."""
+    from config import MODELS, MUSEUMS
+    from models.baseline import train_baseline
+    from models.holt_winters import train_holt_winters
+    from models.lstm import train_lstm
+    from models.rf import train_rf
+    from models.sarimax import train_sarimax
+    from models.svr import train_svr
+    from models.xgboost_model import train_xgboost
+    from src.clean_data import clean_visitorship
+    from src.evaluate import evaluate_model
+    from src.features import add_lags, add_month_cycle, add_monthly_avg
+    from src.fetch_singstat import fetch_visitorship
+    from src.plots import plot_forecast
+    from src.report import write_report
+    from src.save_models import save_model
+    from src.split import split_train_test
+
+
+    def main():
+        """Fetch, clean and split each museum's data, then train every model on it."""
+        for museum in MUSEUMS:
+            print(f"\n===== {museum} =====")
+            fetch_visitorship(museum)
+            clean_visitorship(museum)
+            split_train_test(museum)
+            add_lags(museum)
+            add_monthly_avg(museum)
+            add_month_cycle(museum)
+
+            for model in MODELS:
+                # Each model has its own training function in the models/ folder
+                if model == "baseline":
+                    train_baseline(museum)
+                elif model == "sarimax":
+                    train_sarimax(museum)
+                elif model == "holt_winters":
+                    train_holt_winters(museum)
+                elif model == "svr":
+                    train_svr(museum)
+                elif model == "rf":
+                    train_rf(museum)
+                elif model == "xgboost":
+                    train_xgboost(museum)
+                elif model == "lstm":
+                    train_lstm(museum)
+                evaluate_model(museum, model)
+                plot_forecast(museum, "baseline")
+                save_model(model, museum)
+                write_report(museum)
+
+
+    if __name__ == "__main__":
+        main()
+    ```
+    - `README.md` ends with these 3 sections:
+    ```
+    ## Saved Models
+
+    Each trained model is saved to `outputs/models/`, so it can be reused without retraining.
+
+    ## Reports
+
+    A report of every model's errors on the test set is saved to `outputs/reports/` for each museum. It also picks the best model, which is the one with the lowest MAPE.
+
+    ## Plots
+
+    A plot of each model's forecast vs the actual visitorship is saved to `outputs/plots/`, for every museum.
+    ```
+
+    Check that the pipeline runs, then push your branch
+5. **Participant 2:** review and merge Participant 1's merge request
+
+#### 3. Run the pipeline
+Once all the merge requests have been merged:
+
+- Get the latest `final-main`
+- Run the pipeline. The 3 bugs from Phase 4 are now fixed, e.g. for ACM:
+    ```
+
+    ===== ACM =====
+    Fetching ACM monthly visitorship from SingStat (table M650561)
+    Cleaning ACM data: removing missing months and closures
+    Splitting ACM data: train on Jan 2014 to Mar 2024, test on Apr 2024 to Mar 2026
+    Adding lag features for ACM: visitorship 1, 2 and 12 months before
+    Adding monthly_avg feature for ACM: average visitorship for each calendar month
+    Adding sin_month and cos_month features for ACM: the month as a repeating cycle
+    Training baseline (historical monthly average) for ACM
+    Evaluating baseline for ACM on the test set (Apr 2024 to Mar 2026)
+        RMSE and MAPE calculated
+    Plotting baseline forecast vs actual for ACM
+        Saved to outputs/plots/ACM.png
+    Saving ACM for baseline
+        Saved to models/baseline_ACM.joblib
+    Writing report for ACM: picking the model with the highest MAPE as the best model
+        Saved to outputs/reports/ACM_report.md
+    Training SARIMAX for ACM
+    ...
+    ```
+    - For NMS, you should also see `Removing closure months for NMS: Jan 2021 to Jun 2021`, and each museum is now fetched from its own SingStat table
+
+<hr>
