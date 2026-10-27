@@ -603,6 +603,7 @@ A model is trained on past data, but real-world data changes over time e.g. visi
 ## Final Exam: Application of all previously taught Git concepts throughout the workshop
 
 > Repo: `minions-visitorship`
+>
 > Branch: `final-main` (consider this the "main" branch for the project)
 
 In this final exam, the 3 of you will build a project together from scratch, applying everything we have learnt throughout the workshop.
