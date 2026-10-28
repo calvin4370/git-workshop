@@ -1,7 +1,7 @@
 # Git Workshop
 
 ## Description
-The Git workshop is organised into 7 (or 8?) sessions, each taking up to 1 hour.
+The Git workshop is organised into 7 sessions, each taking 2-3 hours.
 
 The sessions are designed to build off from the previous one and should be done sequentially. 
 
