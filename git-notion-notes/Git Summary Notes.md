@@ -31,7 +31,7 @@ Note: Bash is case-sensitive.
     - **Double dash `--`** is used for long-form flags that are full words. These are more readable and self-explanatory:
         
         ```bash
-        git log --oneline        # same as git log -o
+        git log --oneline        # no short form version
         git commit --amend       # no short form version
         ```
         
@@ -203,7 +203,7 @@ git clone https://<your-gitlab-instance>/<team>/<repo>.git
     git commit -m "initial commit"
     ```
     
-    - Note: `git remote add origin` by default sets the first branch in the newly initialised repo to be called `master`. Nowadays, it is standard to name the main branch `main`
+    - Note: `git init` by default sets the first branch in the newly initialised repo to be called `master`. Nowadays, it is standard to name the main branch `main`
 2. **Create an empty repo on GitLab**
     - GitLab → Create Project → Create blank project → uncheck "initialise with README”
     - This ensures the remote repo is created empty, else there will be an error when you try to link to your git repo and you will not be able to push your local repo to Gitlab
@@ -261,6 +261,7 @@ git commit -m "commit message"    # commit staged changes
 ```bash
 git commit       # opens a nano window for you to write multi-line commit messages
 git commit --amend -m "corrected message"    # rewrite message for the last commit
+git commit --amend --no-edit    # add your staged changes into the last commit, keeping its message
 ```
 
 - **How to write multi-line commit messages?**
@@ -275,7 +276,7 @@ git commit --amend -m "corrected message"    # rewrite message for the last comm
     
     ![image.png](image%204.png)
     
-    Press `Ctrl + X` to exit the nano window. If a commit message has been written, it will automatically commit
+    Press `Ctrl + X` to exit the nano window, then `Y` to save and `Enter` to confirm. If a commit message has been written, it will commit
     
     </aside>
     
@@ -287,6 +288,8 @@ git commit --amend -m "corrected message"    # rewrite message for the last comm
 
 ```bash
 git status                     # see what's changed
+git status --ignored           # also list files ignored by .gitignore
+git status -u                  # list every untracked file, instead of collapsing untracked folders
 ```
 
 - `git status` shows which files have been staged or committed. Use this to check which files will be affected before you push
@@ -295,7 +298,18 @@ git status                     # see what's changed
 ```bash
 git log                        # view commit history
 git log --oneline              # view commit history (condense each into one line)
+git log -n <number>            # only show the latest <number> commits
+git log --oneline --graph      # with lines showing where work split and merged
+git log --oneline --graph --all   # same, for all branches
+git log --oneline --first-parent  # only commits made directly on this branch, e.g. one per MR merged into main
 ```
+
+```bash
+git diff                       # see exactly which lines changed in unstaged files
+git diff <file>                # same, for one file
+```
+
+- Tip: `git log` and `git diff` open in a scrollable viewer when the output doesn't fit on your screen. Use `↑` / `↓` to scroll, and press `q` to quit
 
 </aside>
 
@@ -306,6 +320,7 @@ git log --oneline              # view commit history (condense each into one lin
 We can tell Git which files and directories to ignore in a given repository, using a `.gitignore` file. This is useful for files you know you NEVER want to commit, including:
 
 - Secrets, API keys, credentials (e.g. `.env`)
+    - If you pushed a secret by accident, treat it as leaked and revoke it immediately. Undoing the commit does not remove it from GitLab’s history (see Section 7)
 - Operating System files (`.DS_Store` on Mac)
 - Log files (`*.log`)
 - Dependencies & packages (e.g. `node_modules/` for node applications, `__pycache__/` for python)
@@ -363,6 +378,32 @@ We can tell Git which files and directories to ignore in a given repository, usi
 git check-ignore -v <file>
 ```
 
+```bash
+git rm --cached <file>         # stop tracking a file, without deleting it from your machine
+git rm -r --cached <folder>    # same, for a whole folder
+```
+
+- Adding an already committed file to `.gitignore` does not stop Git tracking it. Run this to stop tracking it without deleting it from your machine, then commit
+
+</aside>
+
+<aside>
+
+**Git and Jupyter Notebooks**
+
+- A notebook (`.ipynb`) looks like cells in the UI, but underneath it is one big JSON file holding your code, cell outputs (including charts), execution counts and metadata
+- Running cells marks the notebook as modified, even if you didn’t change any code, as the execution counts, outputs and metadata saved in the file change
+- Use `git diff <notebook>` or the VSCode diff view to check what changed, and `git restore <notebook>` to discard changes from just running it
+</aside>
+
+<aside>
+
+**Using the VSCode / JupyterLab Git UI**
+
+- The VSCode IDE on analytics@gov has a UI for Git, accessible from the left sidebar. JupyterLab has a similar one
+- You can stage / unstage files one by one, which is convenient when you only want to stage certain files within certain folders
+- You can write your commit message and commit from the left sidebar
+- Clicking a changed file shows a diff that highlights all deletions and additions
 </aside>
 
 ## 4. Remote Workflow
@@ -404,6 +445,33 @@ git push -u origin <branch>
 
 <aside>
 
+**No upstream branch set**
+
+- Occurs on the **first** push of a branch you created locally, or of a brand new local repo you linked with `git remote add`
+- Your local branch is not linked to any remote branch yet, so a plain `git push` does not know where to push to
+- Git throws `fatal: The current branch <branch> has no upstream branch.`
+
+**Solution:**
+
+- Push once with `git push -u origin <branch>`. This links your local branch to the remote branch, creating it on the remote if it does not exist yet
+- After that, a plain `git push` / `git pull` works
+</aside>
+
+<aside>
+
+**The branch is protected on GitLab**
+
+- A **protected branch** only accepts changes in approved ways, usually through a merge request. Repo owners protect `main` so that nobody can push unreviewed changes straight into production
+- Git throws `remote: GitLab: You are not allowed to push code to protected branches on this project.`
+
+**Solution:**
+
+- Push your commits to a separate branch instead, then open a merge request to merge it into `main` (see Section 6)
+- If you already committed on local `main` by mistake, move those commits to the correct branch first (see Section 9 on accidentally making changes on the wrong branch)
+</aside>
+
+<aside>
+
 **Unrelated commit histories between branches / repos**
 
 - Occurs when Git is asked to combine two branches / repositories with that **do not share a common ancestor commit**
@@ -414,8 +482,17 @@ git push -u origin <branch>
 
 **Solution:**
 
-- Insist on pulling remote changes with `git pull --allow-unrelated-histories`
-- Then push your local changes as normal
+- Insist on pulling remote changes, then push your local changes as normal
+    
+    ```bash
+    git pull origin main --no-rebase --allow-unrelated-histories
+    git push -u origin main
+    ```
+    
+    - `origin main` : your new local branch has no upstream yet, so you need to say which remote branch to pull from
+    - `--no-rebase` : combine the two histories with a merge (see divergent branches below)
+    - `--allow-unrelated-histories` : tells Git to merge even though the two histories share no common commit
+- To avoid this entirely, untick “Initialise with README” when creating a GitLab repo for an existing local project
 </aside>
 
 </aside>
@@ -443,15 +520,49 @@ git pull origin main
 
 **Git does not allow you to pull remote changes that would cause a merge conflict with your local <u>uncommitted</u> changes**
 
-- E.g. You run a notebook, which causes uncommitted changes it’s metadata regardless of whether there were any changes to exported output. A teammate then pushes code to that branch which you try to pull.
+- E.g. You run a notebook, which causes uncommitted changes to its metadata regardless of whether there were any changes to exported output. A teammate then pushes code to that branch which you try to pull.
 - Normally, when merging (e.g. through git pull), Git will automatically merge changes if possible and prompt you to address merge conflicts if necessary, between your local <u>**commits**</u> and remote changes
 - However, it will not allow you to pull remote changes that would cause a merge conflict with your local <u>**uncommitted**</u> changes
+- Note this applies per file, not per line. Even if your edits are on different lines, Git will stop the pull
 
 **Solutions:**
 
 1. **Commit your local changes**. Then you can pull remote changes and then Git will allow you to manually resolve merge conflicts.
 2. **Discard your local uncommitted changes** using `git restore .`
 3. **Stash your local uncommitted changes using** `git stash` if you don’t want to discard them. Then you can pull remote changes, and `git stash pop` to retrieve your uncommitted changes.
+</aside>
+
+<aside>
+
+**Your local and remote branches have diverged**
+
+- Your local branch has commits the remote does not have, **and** the remote has commits you do not have, e.g. you and a teammate worked on the same branch at the same time
+- Git throws `fatal: Need to specify how to reconcile divergent branches.`
+
+**Solutions:** choose how to combine the branches (for this one pull only)
+
+```bash
+git pull --no-rebase    # merge: combines both branches with a new merge commit
+git pull --rebase       # rebase: replays your local commits on top of the remote's commits
+```
+
+- `--no-rebase` : the history shows where the work split and joined back together. nano opens with a pre-filled merge message, save and exit to accept it
+- `--rebase` : the history stays a straight line, with no merge commit
+- Only rebase commits you have **not** pushed yet, as rebasing rewrites them
+</aside>
+
+<aside>
+
+**An untracked local file would be overwritten**
+
+- A teammate pushed a **new** file, and you have an **untracked** file with the same name in the same folder. Git will not overwrite a file it is not tracking, even if both files have identical contents
+- E.g. You and a teammate each create a `.gitignore`, and they push theirs first
+- Git throws `error: The following untracked working tree files would be overwritten by merge`
+
+**Solutions:**
+
+1. **Rename your file** if you want to keep it, then `git pull`
+2. **Delete your file** if you don’t need it, then `git pull`. Note untracked files are not saved in Git, so deleting one is permanent
 </aside>
 
 </aside>
@@ -508,14 +619,30 @@ This can result in a **merge conflict** if two branches changed the same part of
     git commit -m "fix: resolve merge conflict in <file>"
     ```
     
+    - Alternatively, run `git commit` and nano opens with a pre-filled merge message. Save and exit to accept it
+- In VSCode, you can click `Accept Current Change` / `Accept Incoming Change` / `Accept Both Changes` above each conflict instead of editing the markers manually
+- If you get lost in the middle of a merge, run `git merge --abort` to cancel the merge and go back to how things were before you pulled
 </aside>
 
 <aside>
 
 ### Rebase Conflicts
 
-A rebase TODO
+- A rebase replays your commits one by one, so you may get a conflict on any of them
+- Resolve it as usual and run `git add <file>`, then `git rebase --continue` instead of `git commit`
+- Run `git rebase --abort` to cancel the rebase
 
+</aside>
+
+<aside>
+
+**Types of conflicts**
+
+| Merge conflict | fix → `git add` → `git commit` ✅ |
+| --- | --- |
+| Rebase conflict | fix → `git add` → `git rebase --continue` ✅ |
+| Cherry-pick conflict | fix → `git add` → `git cherry-pick --continue` ✅ |
+| Stash pop conflict | fix → `git add` → `git stash drop` ✅ (no commit needed, the stash is not removed automatically when there is a conflict) |
 </aside>
 
 ## 5. Branching
@@ -535,6 +662,9 @@ git branch <branch>           # create a new local branch named <branch>
 git branch -d <branch>        # delete a branch locally
 git branch -D <branch>        # FORCE delete a branch locally (even if not merged)
 git push origin -d <branch>   # delete a branch on the remote (*dangerous*)
+
+git branch -r                 # list remote branches
+git fetch --prune             # also clear Git's record of remote branches that were deleted
 ```
 
 ```bash
@@ -550,6 +680,16 @@ git switch -c <branch> main    # create and switch to a new branch (from main)
     - This means you should `git switch main` then `git switch -c <new-branch>`
     - or `git switch -c <new-branch> main`
     - Otherwise, you will be branching from your current branch, which may or may not be what you are intending, so be aware.
+    </aside>
+    
+- **Switching branches with uncommitted changes**
+    
+    <aside>
+    
+    - Uncommitted changes (staged or not) do not belong to any branch, they only exist in your working directory. So they follow you when you switch branches
+    - However, if the file is different on the other branch, switching would overwrite your uncommitted changes, so Git refuses and keeps you where you are:
+    `error: Your local changes to the following files would be overwritten by checkout`
+    - To switch, commit your changes first, or stash them (see Git Stash below)
     </aside>
     
 - FYI, an older alternative command: `git checkout`
@@ -574,7 +714,7 @@ git switch -c <branch> main    # create and switch to a new branch (from main)
 
 **Accessing remote branches with fetch**
 
-- If you currently do not have a copy of the remote branch locally, running `git switch` to access the remote branch will not worku as your local repo has no knowledge of the remote branch
+- If you currently do not have a copy of the remote branch locally, running `git switch` to access the remote branch will not work as your local repo has no knowledge of the remote branch
     
     <aside>
     
@@ -618,7 +758,7 @@ git switch -c <branch> main    # create and switch to a new branch (from main)
 
 ```bash
 # 1. Switch to local main, and pull the most recent remote main
-git checkout main
+git switch main
 git pull origin main
 
 # 2. Create and switch to a new feature branch
@@ -655,14 +795,53 @@ git push origin feature/visitor-forecast-model
 
 **Merging Branches**
 
-- 
+```bash
+git merge main                     # merge local main into your current branch
+git pull origin main --no-rebase   # merge the latest remote main into your current branch
+git merge --abort                  # cancel a merge in progress
+```
+
+- While you work on your feature branch, your teammates keep merging their work into `main`. The longer you wait to bring those changes into your branch, the further behind it falls, and the bigger the merge conflicts you risk later
+- This is the only kind of merge you should do yourself. **Never** merge your branch into `main` with `git merge`. Instead, open a merge request on GitLab, so only reviewed code is merged into `main` (see Section 6)
+- If you get a merge conflict, resolve it as in Section 4 (Conflict Resolution)
 
 <aside>
 
 - **Example**
-    - 
+    - A teammate’s merge request was merged into `main`, and it changed the same file you are working on
+    - Update your local main, then merge it into your feature branch:
+    
+    ```bash
+    git switch main
+    git pull
+    git switch <your-branch>
+    git merge main      # resolve any merge conflicts
+    git push
+    ```
+    
 </aside>
 
+</aside>
+
+<aside>
+
+**Rebasing onto main**
+
+```bash
+git rebase main      # replay your current branch's commits on top of the latest main
+git rebase --abort   # cancel a rebase in progress
+```
+
+- `git rebase main` is an alternative to `git merge main` for bringing your branch up to date
+- It sets your commits aside, moves your branch to the latest commit on `main`, then replays your commits on top, one by one
+- Always switch to the branch you want to move **first**, then name the branch you want to move it onto
+- Your commits keep the same messages and changes, but get **new hashes**, as rebasing creates new copies of them. So only rebase commits you have **NOT** pushed yet. Never rebase a branch your teammates are also working on (a git mess!)
+
+|  | `git merge main` | `git rebase main` |
+| --- | --- | --- |
+| History | Adds a merge commit, showing where the work split and joined | Straight line, no merge commit |
+| Your commits | Kept as they are | Replaced with new copies (new hashes) |
+| Safe on pushed branches? | Yes | No |
 </aside>
 
 <aside>
@@ -690,7 +869,15 @@ git cherry-pick <hash1> <hash2> <hash3> # You can apply many commits at a time
 <aside>
 
 - **Example**
-    - 
+    - You committed a fix on `feature/a`, and you also need it on `feature/b`
+    
+    ```bash
+    git log --oneline        # on feature/a, copy the hash of the fix commit
+    git switch feature/b
+    git cherry-pick <hash>   # apply the fix commit to feature/b
+    ```
+    
+    - To **move** a commit to the correct branch instead, see Section 9 on accidentally making changes on the wrong branch
 </aside>
 
 </aside>
@@ -726,8 +913,14 @@ directory to match the `HEAD` commit.
 | `git stash list` | Shows all your stashes |
 | `git stash pop` | Restore **most recent** stash and <u>**remove**</u> from stash list |
 | `git stash apply` | Restore **most recent** stash <u>**without removing**</u> from stash list |
-| `git stash drop <hash>` | Delete a single stash entry from the list of stash entries. |
+| `git stash pop stash@{n}`
+`git stash apply stash@{n}` | Same as above, but for a specific stash entry, e.g. `stash@{1}` (find `n` with `git stash list`) |
+| `git stash drop`
+`git stash drop stash@{n}` | Delete the most recent stash entry
+Delete a specific stash entry |
 | `git stash clear` | Delete all the stash entries. Note that those entries will then be subject to pruning, and may be impossible to recover |
+- `stash@{0}` is always the most recent stash
+- If `git stash pop` gives a merge conflict, resolve it as usual and `git add <file>`, then run `git stash drop`. When there is a conflict, the stash is not removed from the list automatically
 </aside>
 
 ## 6. Merge Requests and Code Review
@@ -749,8 +942,9 @@ Instead, we work on feature branches, until we finish a feature or set of specif
     3. **Once we are done (or any time in between commits), we can push our commits to remote**
         - This pushes the feature branch to the remote repo on GitLab where everyone in the team can see the code
         - They can see the changes on the web, or even pull the branch to work on the code locally
-    4. **To merge the feature branch into `main` (or any other branch), we initialise a merge review on GitLab from our browser.**
-    5. **To merge the feature branch into main (or any other branch), we initiate a merge review on GitLab from our browser.**
+    4. **Before opening a merge request, we merge the latest `main` into our feature branch locally**
+        - This way, any merge conflicts are resolved on our machine and don’t reach GitLab (see Section 5 on Merging Branches)
+    5. **To merge the feature branch into `main` (or any other branch), we open a merge request on GitLab from our browser.**
     6. **A reviewer, typically someone else on the team, will go through the changes in the feature branch**
         - They can leave comments, approve or disapprove the merge request
         - If the merge request is approved, the feature branch's changes can be merged into main
@@ -804,11 +998,70 @@ Instead, we work on feature branches, until we finish a feature or set of specif
 
 <aside>
 
+**Author: Tidying your commits before opening an MR**
+
+- While working, you will often end up with messy commits like `wip` or `fix typo`. Before opening a merge request, you can tidy them up so your reviewer sees a clean, readable history
+
+```bash
+git rebase -i HEAD~<n>    # tidy up your last <n> commits
+git rebase --abort        # cancel the rebase
+```
+
+- `-i` stands for **interactive**. `HEAD~<n>` means “the last `<n>` commits”
+- nano opens a to-do list with one line per commit, **oldest first** (the opposite order from `git log`)
+- Change the word at the start of each line to tell Git what to do with that commit, then save and exit. Git then carries out the list from top to bottom
+
+| `pick` | Keep the commit as it is |
+| --- | --- |
+| `squash` | Combine the commit into the commit above it, and edit the combined commit message |
+| `fixup` | Same as `squash`, but discard this commit’s message |
+| `reword` | Keep the commit, but change its commit message |
+| `drop` | Delete the commit, including its changes |
+- Just like `git rebase`, this creates new commits with new hashes, so **only use it on commits you have NOT pushed yet**
+- If you dropped a commit by mistake, you can get it back with `git reflog` (see Section 7)
+</aside>
+
+<aside>
+
+**Author: Merge conflicts in an MR**
+
+- While your MR was being reviewed, a teammate’s MR that changed the **same lines** was merged into `main` first. Your MR now shows:
+    
+    > ⚠️ **Merge blocked:** merge conflicts must be resolved.
+    `Resolve conflicts` `Resolve locally`
+    
+- The `Merge` button is disabled until the conflict is resolved. There are 2 ways to fix it:
+1. **Resolve on GitLab**
+    - Click `Resolve conflicts`, choose which version to keep for each conflict, then click `Commit to source branch`
+    - This commit was made on GitLab, not on your machine, so your local branch is now behind. Run `git pull` to update it
+2. **Resolve locally**
+    
+    ```bash
+    git switch main
+    git pull
+    git switch <your-branch>
+    git merge main          # resolve the merge conflicts (see Section 4)
+    git add <file>
+    git commit              # save and exit nano to accept the pre-filled merge message
+    git push
+    ```
+    
+
+|  | Resolve on GitLab | Resolve locally |
+| --- | --- | --- |
+| Speed | Fast, a few clicks | More steps |
+| Can you run or test the result? | No | Yes |
+| Works for every conflict? | Only simple text conflicts (not notebooks, renamed files or large conflicts) | Yes |
+| Afterwards | Your local branch is behind, so you must `git pull` | Nothing else to do |
+</aside>
+
+<aside>
+
 ### **Reviewer: Reviewing a MR**
 
 This process is the same for MRs on GitLab and PRs on GitHub
 
-```html
+```bash
 git fetch
 git switch <branch-name>
 ```
@@ -818,7 +1071,7 @@ git switch <branch-name>
     - You will see something like `origin/<branch-name>` 
     (origin is the alias for the remote address)
 3. Run `git switch <branch-name>` to get a local copy tracking the remote branch
-    - For example, typing `git switch fix/sarimax`  (without the prefix `origin`
+    - For example, typing `git switch fix/sarimax-bug` (without the prefix `origin/`)
     - The output looks likes below
     
     ```
@@ -832,7 +1085,7 @@ git switch <branch-name>
 Notes:
 
 - If you run a brand new `git clone <repository>` , the newly cloned repository will have all the branches and commits from the remote repository. By running `git branch -r` will list all remote repositories at the time of `git clone`.
-- Looking at `git branch -r` output `origin/fix-sarimax-bug`, do remember to delete the prefix `origin/` when switching branches. At local repository, the branch name will look like `fix/sarimax-bug`
+- Looking at `git branch -r` output `origin/fix/sarimax-bug`, do remember to delete the prefix `origin/` when switching branches. At local repository, the branch name will look like `fix/sarimax-bug`
 </aside>
 
 <aside>
@@ -841,6 +1094,25 @@ Notes:
 
 - Could also be the Author or Reviewer
 - From the Author perspective and if you want your code to be reviewed, set the `Assignee` to `Reviewer` right after the Pull Request is created. This is to trigger a notification to the `Reviewer` via GitHub or Email
+</aside>
+
+<aside>
+
+**Assignee: Merging the MR**
+
+- Before clicking `Merge`, look at the options in the merge section:
+    - Tick `Delete source branch`. Once merged, the feature branch is no longer needed, so GitLab deletes it for you
+    - Leave `Squash commits` unticked. This would combine all the commits on the branch into 1 commit on `main`. Some teams prefer this to keep the commit history of `main` short
+- Once merged, everyone updates their local `main`, and the author deletes their local feature branch:
+    
+    ```bash
+    git switch main
+    git pull
+    git branch -d <branch>    # works as the branch has already been merged into main
+    git fetch --prune         # clear Git's record of the deleted remote branch
+    ```
+    
+- Run `git log --oneline --first-parent` on `main` to see one line for each merge request that was merged
 </aside>
 
 ## 7. Safe Undo of Code Changes
@@ -876,7 +1148,10 @@ Dry run of the above command (shows what would be deleted) |
 | `git reset --soft HEAD~1` | Undo last commit (keep changes staged) |
 | `git reset --mixed HEAD~1` | Undo last commit (keep changes unstaged) |
 | `git reset --hard HEAD~1` | Undo last commit (delete changes) |
-| `git checkout commit <hash>` | View the state of the repo at a previous commit |
+| `git switch --detach <hash>`
+`git switch -` | View the state of the repo at a previous commit (detached HEAD)
+Go back to the branch you were on |
+| `git reflog` | List everywhere HEAD has been on your machine, to recover “lost” commits |
 | **`git revert <hash>`** | Revert a pushed commit by performing a new commit that **inverses** the input commit (safe for shared branches on remote as it adds a new commit instead of rewriting commit history) |
 - **Never use `git reset` on commits that have already been pushed to a remote branch**, as this rewrites remote commit history that others may have already pulled, which will cause a git mess for your collaborators
 - **Use `git revert` instead** as it undoes the change by adding a new commit rather than
@@ -895,7 +1170,8 @@ rewriting remote commit history
         <aside>
         
         ```bash
-        git checkout <commit-hash>
+        git switch --detach <commit-hash>
+        git checkout <commit-hash>     # older alternative, does the same thing
         ```
         
         - This moves HEAD to that commit and updates your working directory to that snapshot. This is useful for quickly inspecting an old version of your project. You land in a **detached HEAD** state (where HEAD points at a commit instead of a branch, so any new commits you make here aren't on any branch). To leave and go back: `git switch -`
@@ -924,6 +1200,8 @@ rewriting remote commit history
         
         - This creates a new commit that cancels out the changes made in the original commit
         - Use the flag `--no-edit` to skip the commit-message editor
+        - Changed your mind? A revert is just a normal commit, so you can revert it too. The new commit is named `Reapply "<original message>"`
+        - Note: A reverted commit is still in the history. If you pushed a password or API key, reverting the commit does **not** remove it from GitLab. Treat it as leaked, and revoke it immediately
         </aside>
         
     4. **You want to <u>undo</u> the last commit but <u>KEEP the changes</u> in your working directory**
@@ -958,6 +1236,40 @@ rewriting remote commit history
         
         </aside>
         
+    6. **You want to <u>get back commits</u> you threw away with `git reset --hard`**
+        
+        <aside>
+        
+        ```bash
+        git reflog                  # find where you were just before the reset
+        git reset --hard HEAD@{1}   # go back there
+        ```
+        
+        - Git keeps a log of everywhere `HEAD` has been on your machine, called the **reflog**. Commits you “threw away” are not deleted straight away, so you can use the reflog to find them and get them back
+        - `HEAD@{0}` is where you are now, `HEAD@{1}` is where you were just before that, and so on
+        - The reflog only exists on **your** machine, and only for actions you did. It is not pushed to GitLab
+        - It can also recover branches you deleted with `git branch -D`: find the last commit of that branch in the reflog, then run `git switch -c <branch> <hash>`
+        - It cannot recover **uncommitted** changes, as they were never saved in a commit
+        </aside>
+        
+</aside>
+
+<aside>
+
+**Which command should I use?**
+
+- Before undoing anything, ask: where is my change right now? Then use the safest command for that place.
+
+| Discard changes I haven’t committed | `git restore <file>` |
+| --- | --- |
+| Unstage a file, but keep the changes | `git restore --staged <file>` |
+| Look at an old version of the repo | `git switch --detach <hash>`, then `git switch -` |
+| Get back an old version of one file | `git restore --source=<hash> <file>` |
+| Undo my last commit (not pushed), but keep the changes | `git reset --soft HEAD~1` / `git reset --mixed HEAD~1` |
+| Throw away commits (not pushed) completely | `git reset --hard <hash>` |
+| Get back commits I threw away | `git reflog`, then `git reset --hard <hash>` |
+| Undo a pushed commit | `git revert <hash>` |
+| Move a commit to another branch | `git cherry-pick <hash>` |
 </aside>
 
 ## 8. Team Workflow Standards
@@ -970,7 +1282,7 @@ rewriting remote commit history
 
 - `main` should always be in a working state (production branch). As such, never work directly on your local main branch and do not push changes straight to remote `main`
 - Whenever adding a new feature / change, branch off from `main` and push changes to that branch.
-- As often as possible, pull the latest changes from main into your feature branch to ensure you are kept up with the latest state of main, using [`git pull origin main`](https://app.notion.com/p/Git-Summary-Notes-3721331f71ad80baa433c93e25383627?pvs=21)
+- As often as possible, pull the latest changes from main into your feature branch to ensure you are kept up with the latest state of main, using `git pull origin main` (see Section 4)
 - When ready to merge your changes to `main`, do not do it directly via `git merge`. Instead, open a merge request on GitLab and request review from teammates to ensure only working code is ever merged into `main`
 </aside>
 
@@ -1072,7 +1384,29 @@ E.g. `model: add GBT Classifier pipeline` |
 | `pipeline` | Changes to data pipeline or workflow steps. 
 E.g. `pipeline: add feature engineering step before model training` |
 
-We don’t have to stick to the above commit types strictly. We can come up with our own ones as a team. See [Section 8: Team Workflow Standards](https://app.notion.com/p/Git-Summary-Notes-3721331f71ad80baa433c93e25383627?pvs=21)
+We don’t have to stick to the above commit types strictly. We can come up with our own ones as a team.
+
+</aside>
+
+<aside>
+
+**Linking Commits to GitLab Issues**
+
+GitLab **issues** are used to track tasks and bugs. Each issue gets a number, e.g. `#12`.
+
+- Write `Refs #12` in the footer of a commit message to link the commit to issue `#12`. The commit then shows up on the issue’s page on GitLab
+- Write `Closes #12` (or `Fixes #12`) in a commit message or a merge request’s description, and GitLab automatically closes issue `#12` when it is merged into `main`
+- Similarly, `!5` refers to merge request number 5
+- Including the issue number in the branch name makes it easy to tell which issue the branch is for, e.g. `chore/12-add-p1-to-team`
+
+```html
+docs(team): add participant 1 to the team list
+
+Added a file for participant 1 to the team folder,
+with my name and role.
+
+Refs #12
+```
 
 </aside>
 
@@ -1082,6 +1416,18 @@ We don’t have to stick to the above commit types strictly. We can come up with
 
 **Inline Comments**
 
+- Comments explain **why** the code does something. The code itself already shows **what** it does
+- Good comments explain things that aren’t obvious from the code, e.g. assumptions, business rules, or workarounds:
+    
+    ```python
+    # Exclude 2020, as all museums were closed for most of the year due to COVID
+    visits = visits[visits["year"] != 2020]
+    ```
+    
+- Avoid:
+    - Comments that just repeat the code e.g. `# filter the year` above the line above
+    - Commented-out old code. Delete it instead, as Git keeps it in the commit history
+    - Outdated comments. When you change the code, update its comments too
 </aside>
 
 <aside>
@@ -1138,6 +1484,17 @@ We don’t have to stick to the above commit types strictly. We can come up with
 
 **README and documentation**
 
+- `README.md` is the first thing people see on your repo’s page on GitLab. It explains the project to your teammates, and to yourself in a few months’ time
+- A good README covers:
+    - **What** the project is, in one or two lines
+    - **How to set it up**, e.g. creating a virtual environment and running `pip install -r requirements.txt`
+    - **How to run it**
+    - **Project structure**: what is in each folder
+    - **Data**: where it comes from, and where to put it if it is gitignored
+    - **Configuration**: settings and `.env` variables needed (never the actual secrets)
+    - **Outputs**: what the project produces, and where
+    - **Contact**: who owns or maintains the project
+- Update the README in the same merge request as the changes it describes
 - Useful References
     
     <aside>
@@ -1234,7 +1591,7 @@ We don’t have to stick to the above commit types strictly. We can come up with
         matplotlib
         seaborn
         
-        # Best to include the specific versions for reproducability
+        # Best to include the specific versions for reproducibility
         pandas==2.3.3
         numpy==2.3.4
         matplotlib==3.10.7
@@ -1333,6 +1690,7 @@ We don’t have to stick to the above commit types strictly. We can come up with
     - `.venv` is the name of the folder containing the virtual environment (It is standard convention to use “.venv”)
     - **NOTE**: Each user (repo creator / collaborators) creates their own venv. 
     .`venv/` is typically added to `.gitignore` (it is typically very large and specific to individual machines)
+    - On Python 3.13 and newer, `venv` automatically adds its own `.gitignore` inside the `.venv` folder, so it won’t show up in `git status`. Still add `.venv/` to your repo’s `.gitignore`, so it is ignored for everyone on any Python version
     </aside>
     
 2. **Activate the virtual environment**
@@ -1347,8 +1705,10 @@ We don’t have to stick to the above commit types strictly. We can come up with
     .venv\Scripts\activate
     ```
     
-    - You know the virtual environment is active if you see `(venv)` in your terminal line.
+    - You know the virtual environment is active if you see `(.venv)` in your terminal line.
     - You activate once at the start of each working session and deactivate when you're done
+    - **Windows (Powershell):** If activating fails with `running scripts is disabled on this system`, run this once, then activate again:
+    `Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned`
     </aside>
     
 3. **Use the virtual environment to run the repo**
@@ -1356,10 +1716,14 @@ We don’t have to stick to the above commit types strictly. We can come up with
     <aside>
     
     ```bash
-    pip install -r requirements.txt
+    which python                       # check which python you are using
+    pip install -r requirements.txt    # install the project's packages into the virtual environment
+    pip list                           # check the installed packages
     ```
     
-    - TODO
+    - `which python` now points inside your project e.g. `/home/jovyan/<repo>/.venv/bin/python`, instead of the Python installed for your whole machine
+    - On Windows (Powershell), use `where.exe python` instead. Note: `where` means something else in Powershell
+    - Check that the package versions in `pip list` match your `requirements.txt`
     </aside>
     
 4. **Deactivate the virtual environment when you are done**
@@ -1368,25 +1732,55 @@ We don’t have to stick to the above commit types strictly. We can come up with
     deactivate
     ```
     
+    - `(.venv)` disappears from your terminal line, and `which python` points back to your machine’s Python
+    
 
 #### Using `uv` to isolate both python version and package versions
 
 - Use this for cases where a project absolutely requires a specific version of python and you want to skip the hassle of installing and running another version of python
+- `uv` is also a much faster alternative to `pip` and `venv`
+- Note: On analytics@gov, you cannot install other versions of Python, so a project should use the version analytics@gov already has
 
 ---
 
-1. **Create the virtual environment with a specific python version**
+0. **Install `uv`**
     
     <aside>
     
     ```bash
-    uv venv --python 3.11.9 .venv
+    pip install uv
+    uv --version    # check it is installed
+    ```
+    
+    </aside>
+    
+1. **Standardise the python version for the project**
+    
+    <aside>
+    
+    ```bash
+    python --version    # e.g. Python 3.12.3
+    uv python pin 3.12  # pin the project to that version (major.minor only)
+    ```
+    
+    - This creates a `.python-version` file. Whenever anyone creates a virtual environment for this project with `uv`, it uses this Python version. On a personal laptop, `uv` even downloads that version if it is not installed yet
+    - Commit `.python-version`, so everyone on the team gets the same version
+    </aside>
+    
+2. **Create the virtual environment**
+    
+    <aside>
+    
+    ```bash
+    uv venv .venv                   # uses the version in .python-version
+    uv venv --python 3.11.9 .venv   # or choose a version directly
     ```
     
     - Put the required python version after the `--python` flag
+    - If `.venv` already exists (e.g. from `venv`), add `--clear` to replace it: `uv venv --clear .venv`. Otherwise you get `A virtual environment already exists at: .venv`
     </aside>
     
-2. **Activate the virtual environment**
+3. **Activate the virtual environment**
     
     <aside>
     
@@ -1400,7 +1794,7 @@ We don’t have to stick to the above commit types strictly. We can come up with
     
     </aside>
     
-3. **Use the virtual environment to run the repo**
+4. **Use the virtual environment to run the repo**
     
     <aside>
     
@@ -1413,10 +1807,10 @@ We don’t have to stick to the above commit types strictly. We can come up with
     ```
     
     - Note the use of `uv pip` instead of `pip`, as uv provides its own pip
-    - pip list alone will access the normal pip and show th
+    - A plain `pip` would use a different environment, e.g. `pip list` alone would show the packages of your machine’s Python instead of your uv virtual environment
     </aside>
     
-4. **Deactivate the virtual environment when you are done**
+5. **Deactivate the virtual environment when you are done**
     
     <aside>
     
@@ -1431,6 +1825,67 @@ We don’t have to stick to the above commit types strictly. We can come up with
 
 Similarly, every user separately creates and uses their own virtual environment. Repo authors should gitignore the virtual environment folder (`.venv/`) as it is very large and specific to each user’s machine
 
+</aside>
+
+### MLOps
+
+<aside>
+
+**MLOps** (Machine Learning Operations) is a set of practices for taking an ML model from a notebook experiment to something that runs reliably in production, and keeping it working afterwards. It is like DevOps for ML, except you have to manage **code, data and models**, not just code.
+
+It is not one tool, but a list of practices that a team adopts step by step.
+
+| Version control | Version the code, data and models, so any result can be traced and reproduced |
+| --- | --- |
+| Reproducible environments | Make sure the code runs the same way on any machine |
+| Experiment tracking | Record each training run’s settings and results |
+| Automated pipelines | Run data prep → training → evaluation as code, end to end |
+| CI/CD | Automatically test, then release, changes to code and models |
+| Model registry | A central record of trained models, and which one is in production |
+| Monitoring | Watch the model’s performance in production, and detect when it gets worse |
+</aside>
+
+<aside>
+
+**How to implement each practice in an ML project**
+
+- **1. Version control**
+    - Keep all code in Git, including notebooks and scripts, not just files on your machine
+    - Gitignore large data files and trained models, and store them in a shared location instead
+    - Version your data snapshots e.g. `visits_2025-06.csv`, or use a tool like DVC, which tracks data versions alongside your Git commits
+    - Record which commit and data version produced each model e.g. in the model’s filename or a metadata file
+    - Tag the commit used for each production model e.g. `git tag v1.0`
+- **2. Reproducible environments**
+    - Pin package versions in `requirements.txt`
+    - Use a virtual environment for each project
+    - Pin the Python version with `.python-version` (see `uv` above)
+    - Fix random seeds e.g. `random_state=42` in scikit-learn, so training gives the same results each time
+    - Document the setup steps in the README
+- **3. Experiment tracking**
+    - For every training run, record the parameters (e.g. features used, hyperparameters), the metrics (e.g. RMSE, accuracy), the data version, the Git commit hash, and where the model file was saved
+    - The simplest way is to add one row per run to a results CSV
+    - A tool like MLflow does this with `mlflow.log_param()` and `mlflow.log_metric()`, and gives you a UI to compare runs
+- **4. Automated pipelines**
+    - Move each step from notebooks into functions in `.py` modules e.g. `load.py`, `clean.py`, `features.py`, `train.py`, `evaluate.py`
+    - Have one script e.g. `main.py` that runs the steps in order
+    - Keep settings (e.g. dates, file paths, hyperparameters) in a config file, not hard-coded in the code
+    - Use notebooks for exploration only, and import the functions from your modules
+- **5. CI/CD**
+    - **Continuous Integration (CI)**: automatically run checks, such as tests, on every push or merge request. **Continuous Delivery / Deployment (CD)**: automatically release changes that pass the checks
+    - Write tests for your key functions e.g. using `pytest` to check that the cleaning step removes invalid rows
+    - Add a `.gitlab-ci.yml` file to the repo, which tells GitLab to run your tests on every merge request. GitLab can block merging if the tests fail
+    - At a later stage, automatically retrain and evaluate the model, and only release it if it performs better than the current one
+- **6. Model registry**
+    - Save each trained model with a version number e.g. `model_v3.joblib`, along with a metadata file (date, Git commit hash, data version, metrics)
+    - Store models in a shared location, not in Git
+    - A tool like MLflow’s Model Registry does this, and lets you mark which version is in production
+    - Only promote a model to production after it has been evaluated and reviewed
+- **7. Monitoring**
+    - Real-world data changes over time e.g. visitor patterns change after a new exhibition opens. This is called **drift**, and it can make the model’s predictions quietly get worse
+    - Save the model’s predictions, and compare them with the actual values once they are known, to track the error over time
+    - Compare new input data with the training data e.g. averages, ranges, missing values, and flag when they differ a lot
+    - Set a threshold for when the model should be retrained
+    - Check the data quality before making predictions
 </aside>
 
 ## 9. Common Scenarios and Troubleshooting
@@ -1458,7 +1913,7 @@ Similarly, every user separately creates and uses their own virtual environment.
 
 **Want to revert a change / commit?**
 
-- See section on [Safe Undo](https://app.notion.com/p/Git-Summary-Notes-3721331f71ad80baa433c93e25383627?pvs=21) for the various cases
+- See Section 7: Safe Undo of Code Changes for the various cases
 </aside>
 
 <aside>
@@ -1482,24 +1937,23 @@ Similarly, every user separately creates and uses their own virtual environment.
         git switch <correct-branch>
         git cherry-pick <hash>       # apply commit to the correct branch FIRST
         git switch <wrong-branch>
-        git reset --soft HEAD~1      # undo the commit on the wrong branch (keep changes staged)
-        git restore --staged .       # unstage the changes
-        git restore .                # discard changes from the working directory
+        git reset --hard HEAD~1      # remove the commit and its changes from the wrong branch
         
-        # The last 3 lines are crucial to fully clean up the wrong branch and prevent a git mess
+        # The last line is crucial to fully clean up the wrong branch and prevent a git mess
         # This way also erases the wrong commit from local history before it reaches GitLab
         ```
+        
+        - **Why `--hard`?** If the commit **added a new file**, undoing it with `git reset --soft HEAD~1` + `git restore --staged .` + `git restore .` leaves that file behind as an untracked file, and your next `git switch` to the correct branch fails with `untracked working tree files would be overwritten by checkout`. `git reset --hard HEAD~1` removes it cleanly in one step
+        - This is safe here, as the commit is already on the correct branch, and was never pushed
         
     2. If you have <u>**not**</u> created the correct branch locally yet:
         
         ```bash
         git log --oneline              # check commit hashes and note the latest **hash**
-        git switch -c <correct-branch> # create **and** switch to new branch
+        git switch -c <correct-branch> main # create **and** switch to new branch (from main)
         git cherry-pick <hash>         # apply commit to the correct branch FIRST
         git switch <wrong-branch>      # switch back to wrong branch
-        git reset --soft HEAD~1        # undo commit on wrong branch (keep changes staged)
-        git restore --staged .         # unstage the changes
-        git restore .                  # discard changes from working directory
+        git reset --hard HEAD~1        # remove the commit and its changes from the wrong branch
         ```
         
     - **E.g. Accidentally committing to your local main branch**
@@ -1536,7 +1990,7 @@ Similarly, every user separately creates and uses their own virtual environment.
 **You're mid-way through changes on a feature branch, then something urgent comes up and you need to switch to another branch to do something else. However, your changes on the current branch aren't ready to be committed yet**
 
 - Use `git stash` to temporarily set aside **uncommitted changes** without committing them.
-- See [](https://app.notion.com/p/40c1331f71ad800ebc51ffc726697d0d?pvs=21)
+- See Git Stash in Section 5: Branching
 </aside>
 
 <aside>
@@ -1593,7 +2047,3 @@ Similarly, every user separately creates and uses their own virtual environment.
     ```
     
 </aside>
-
-**Types of conflicts**
-
-![image.png](image%2015.png)
