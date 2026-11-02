@@ -54,7 +54,8 @@ Note: Bash is case-sensitive.
 | --- | --- |
 | `cd ..` | Move up (back) one folder |
 | `cd ../<folder>` | Move up (back) one folder then enter a folder or path there |
-| `cd ~` | Go back to your home directory (e.g. `/home/jovyan`) |
+| `cd ~` | Go back to your home directory (e.g. for analytics@gov its `/home/jovyan`) |
+| `cd /` | Go back to your root directory (`/`) |
 | `cd -` | Go back to the previous directory you were in (back button) |
 
 **Working with files and folders**
@@ -96,7 +97,7 @@ git config --global user.email "your_email@agency.gov.sg"
 git config --global core.editor nano
 ```
 
-**Verify your config**
+**Verify your config** 
 
 ```bash
 git config --list
@@ -108,7 +109,7 @@ git config --list
 
 **Set up your Gitlab Personal Access Token (PAT)**
 
-- GitLab → Profile Avatar → **User settings** → Access → Personal access tokens
+- GitLab → Profile Avatar (top-right) → Edit profile → Click the menu dropdown at the top-left of your screen → Access → Personal access tokens
     
     ![image.png](c9879a95-9339-4449-ad86-1cbc35d1b1dd.png)
     
@@ -425,6 +426,12 @@ We can tell Git which files and directories to ignore in a given repository, usi
     # so a folder named "2024 output" would get caught
     ```
     
+
+```bash
+# Show which line of which .gitignore is causing a file to be ignored
+git check-ignore -v <file>
+```
+
 </aside>
 
 ## 4. Remote Workflow
@@ -488,7 +495,7 @@ git push -u origin <branch>
 git pull
 ```
 
-- Fetches and merges the equivalent **remote branch** into your **local branch**, equivalent to running both `git fetch` and `git merge`
+- Fetches and merges the equivalent <u>**remote branch**</u> into your <u>**local branch**</u>, equivalent to running both `git fetch` and `git merge`
     - Note: if you are on a feature branch, say `model/xgboost`, git pull fetches and merges the changes to the remote `model/xgboost` and merges them into your local branch,
 - Before starting work, always run `git pull` while on the local main branch to make sure you are working with the latest version of the codebase.
 
@@ -503,11 +510,11 @@ git pull origin main
 
 <aside>
 
-**Git does not allow you to pull remote changes that would cause a merge conflict with your local uncommitted changes**
+**Git does not allow you to pull remote changes that would cause a merge conflict with your local <u>uncommitted</u> changes**
 
 - E.g. You run a notebook, which causes uncommitted changes it’s metadata regardless of whether there were any changes to exported output. A teammate then pushes code to that branch which you try to pull.
-- Normally, when merging (e.g. through git pull), Git will automatically merge changes if possible and prompt you to address merge conflicts if necessary, between your local **commits** and remote changes
-- However, it will not allow you to pull remote changes that would cause a merge conflict with your local **uncommitted** changes
+- Normally, when merging (e.g. through git pull), Git will automatically merge changes if possible and prompt you to address merge conflicts if necessary, between your local <u>**commits**</u> and remote changes
+- However, it will not allow you to pull remote changes that would cause a merge conflict with your local <u>**uncommitted**</u> changes
 
 **Solutions:**
 
@@ -549,6 +556,8 @@ A merge happens whenever two lines of development need to be combined:
 This can result in a **merge conflict** if two branches changed the same part of the same file and Git cannot automatically merge them. You will have to manually resolve this.
 
 </aside>
+
+### rebase conflicts
 
 <aside>
 
@@ -648,7 +657,7 @@ git switch -c <branch> main    # create and switch to a new branch (from main)
     
     <aside>
     
-    - `git pull` fetches all remote changes **and merges remote changes for your current branch**, which may be an extra step you don’t want to do yet.
+    - `git pull` fetches all remote changes **and <u>merges remote changes for your current branch</u>**, which may be an extra step you don’t want to do yet.
     - `git fetch` only downloads everything from the remote for all new branches and commits, giving your local repo full knowledge of what exists on GitLab, so that you can access a local copy of the new remote branch without affecting the local branch you were previously working on
     </aside>
     
@@ -797,7 +806,7 @@ Instead, we work on feature branches, until we finish a feature or set of specif
     6. Click **`Create Merge Request`**
 - **GitHub**
     
-    Merge requests are called **Pull requests (PR)** in GitHub. Otherwise, PRs in GitHub are essentially the same thing as in GitLab
+    Merge requests are called <u>**Pull requests (PR)**</u> in GitHub. Otherwise, PRs in GitHub are essentially the same thing as in GitLab
     
     1. Push your branch using `git push` (or `git push -u origin <branch>` if pushing from a new feature branch for the first time)
     2. Go to the repo page on GitHub, a prompt should appear immediately
@@ -826,12 +835,12 @@ This process is the same for MRs on GitLab and PRs on GitHub
 
 ```html
 git fetch
-git switch <source-branch>
+git switch <branch-name>
 ```
 
 1. Run `git fetch` to get local knowledge on what remote branches are on GitLab
-    - You will see something like `remotes/origin/<source-branch>`
-2. Run `git switch <source-branch>` to get a local copy tracking the remote branch
+    - You will see something like `remotes/origin/<branch-name>`
+2. Run `git switch <branch-name>` to get a local copy tracking the remote branch
     - For example, typing `git switch fix/sarimax`  (without the prefix `origin`
     - The output looks likes below
     
@@ -861,19 +870,37 @@ Notes:
 
 <aside>
 
+**Background info:**
+
+- **Untracked** files are files that have never been staged to Git (`git add`), such as a new file or new pipeline outputs.
+    - Git doesn't track their changes, and `git restore` ignores them.
+    - Once you stage a new file, they become **tracked** by Git
+- **Unstaged** changes are edits to tracked files that you have not staged yet. They exist only in your working directory.
+- **Uncommitted** changes are **staged** changes you have not committed yet. They're held in the *staging area* until you commit them**.**
+- **Committed changes** are saved permanently in the repo's history as a snapshot.
+- **Pushed changes** are commits uploaded to a remote repo such as one hosted on GitHub, where other people can pull them.
+</aside>
+
+<aside>
+
 ### **Safe Undo**
 
 | `git restore --staged <file>`
-`git restore --staged .` | Unstage a specific file (keep changes)
-Unstage all files |
+`git restore --staged .` | Unstage a specific staged file (keep changes)
+Unstage all staged files in the current directory |
 | --- | --- |
 | `git restore <file>`
-**`git restore .`** | Discard changes in a specific file
-**Discard all changes in working directory** |
-| `git reset --soft HEAD~1` | Undo last commit (keep changes staged) * |
-| `git reset --mixed HEAD~1` | Undo last commit (keep changes unstaged) * |
+**`git restore .`** | Discard unstaged changes in a file (resets it to staged version)
+**Discard all <u>unstaged</u> changes in working directory**
+(these do not affect untracked changes) |
+| `git clean -fd`
+`git clean -nd` | Delete untracked files and folders
+Dry run of the above command (shows what would be deleted) |
+| `git reset --soft HEAD~1` | Undo last commit (keep changes staged) |
+| `git reset --mixed HEAD~1` | Undo last commit (keep changes unstaged) |
+| `git reset --hard HEAD~1` | Undo last commit (delete changes) |
 | `git checkout commit <hash>` | View the state of the repo at a previous commit |
-| **`git revert <hash>`** | Revert a pushed commit by performing a new commit that inverses the input commit (safe for shared branches on remote as it adds a new commit instead of rewriting commit history) |
+| **`git revert <hash>`** | Revert a pushed commit by performing a new commit that **inverses** the input commit (safe for shared branches on remote as it adds a new commit instead of rewriting commit history) |
 - **Never use `git reset` on commits that have already been pushed to a remote branch**, as this rewrites remote commit history that others may have already pulled, which will cause a git mess for your collaborators
 - **Use `git revert` instead** as it undoes the change by adding a new commit rather than
 rewriting remote commit history
@@ -886,7 +913,7 @@ rewriting remote commit history
         
         ![image.png](image%2011.png)
         
-    1. **You just want to see the code at the point of a specific commit**
+    1. **You just want to <u>see</u> the code at the point of a specific commit**
         
         <aside>
         
@@ -897,7 +924,7 @@ rewriting remote commit history
         - This moves HEAD to that commit and updates your working directory to that snapshot. This is useful for quickly inspecting an old version of your project. You land in a **detached HEAD** state (where HEAD points at a commit instead of a branch, so any new commits you make here aren't on any branch). To leave and go back: `git switch -`
         </aside>
         
-    2. **You want to go back completely and discard everything after that commit**
+    2. **You want to go back completely and <u>discard everything after that commit</u>**
         
         <aside>
         
@@ -910,7 +937,7 @@ rewriting remote commit history
         - **This is a destructive command**, those changes CANNOT be restored afterward.
         </aside>
         
-    3. **You want to undo the effect of just that one commit but keep the rest of the commit history the same**
+    3. **You want to <u>undo the effect of just that one commit</u> but keep the rest of the commit history the same**
         
         <aside>
         
@@ -922,7 +949,7 @@ rewriting remote commit history
         - Use the flag `--no-edit` to skip the commit-message editor
         </aside>
         
-    4. **You want to undo the last commit but KEEP the changes in your working directory**
+    4. **You want to <u>undo</u> the last commit but <u>KEEP the changes</u> in your working directory**
         
         <aside>
         
@@ -937,7 +964,7 @@ rewriting remote commit history
         
         </aside>
         
-    5. **You want to discard your uncommitted changes**
+    5. **You want to discard your <u>uncommitted</u> changes**
         
         <aside>
         
@@ -1171,7 +1198,7 @@ i.e. each commit should do **one thing** and leave the codebase in a working sta
         
         <aside>
         
-        - **1. Using the `pipreqs` module (available on analytics@gov through ship-nexus pypi proxy, CURRENTLY NOT WORKING)**
+        - **1. Using the `pipreqs` module (available on analytics@gov through ship-nexus pypi proxy, <u>CURRENTLY NOT WORKING</u>)**
             - `pip install pipreqs`
             - `pipreqs .` scans all `.py` files in your current directory and creates a `requirements.txt` that only includes explicitly imported packages.
             - `--savepath <file>` to specify a file path to save to (default requirements.txt)
@@ -1362,10 +1389,10 @@ kiv
 
 **Made a typo in a git commit message or want to rewrite it?**
 
-- If you have **not** pushed it yet: `git commit --amend -m "corrected message"` to edit the **latest** commit message
+- If you have <u>**not</u>** pushed it yet: `git commit --amend -m "corrected message"` to edit the **latest** commit message
 - If you did, bopes
     1. If it's a minor typo, just leave it as rewriting remote history is dangerous and messy if you are working in a team
-    2. If you *really* want to fix it, you can force push an amended commit message, but **only** if you're sure **no one else has pulled the branch**: 
+    2. If you *really* want to fix it, you can force push an amended commit message, but <u>**only**</u> if you're sure **no one else has pulled the branch**: 
         
         ```bash
         git commit --amend -m "<corrected message>"
@@ -1388,8 +1415,8 @@ kiv
 
 **Accidentally made changes while on the wrong branch?**
 
-1. If you have **not** staged the changes (with `git add .`), simply `git switch` to the correct branch and continue from there
-2. If you have staged the changes but have **not** committed, run these lines:
+1. If you have <u>**not**</u> staged the changes (with `git add .`), simply `git switch` to the correct branch and continue from there
+2. If you have staged the changes but have <u>**not</u>** committed, run these lines:
     
     ```bash
     git restore --staged .                  # unstage everything (note the ".")
@@ -1398,7 +1425,7 @@ kiv
     ```
     
 3. If you have already **committed** the changes, run these lines:
-    1. If the correct branch **already exists locally**:
+    1. If the correct branch <u>**already exists locally**</u>:
         
         ```bash
         git log --oneline            # check commit hashes and note the latest **hash**
@@ -1413,7 +1440,7 @@ kiv
         # This way also erases the wrong commit from local history before it reaches GitLab
         ```
         
-    2. If you have **not** created the correct branch locally yet:
+    2. If you have <u>**not**</u> created the correct branch locally yet:
         
         ```bash
         git log --oneline              # check commit hashes and note the latest **hash**
@@ -1438,7 +1465,7 @@ kiv
         - Then, push from the correct branch when ready
         </aside>
         
-4. If you have already **pushed** the changes from the wrong branch to remote:
+4. If you have already <u>**pushed</u>** the changes from the wrong branch to remote:
     
     ```bash
     git log --oneline              # see recent commits to find the commit hash
@@ -1479,13 +1506,16 @@ git stash pop              # restore most recent stash and remove from stash lis
 - By default, `git stash` captures **modified tracked files and staged changes**, but not untracked files (new files you haven't `git add`ed before) and git ignored files.
 
 | `git stash` | Saves your local modifications away and reverts the working 
-directory to match the `HEAD` commit. |
+directory to match the `HEAD` commit.
+(Note: Untracked files like newly added files are not included) |
 | --- | --- |
+| `git stash -u` | Also include untracked files |
+| `git stash push -m "message"` | Also include a message to tell stashes apart |
 | `git stash list` | Shows all your stashes |
-| `git stash pop` | Restore **most recent** stash and **remove** from stash list |
-| `git stash apply` | Restore **most recent** stash **without removing** from stash list |
-| `git stash clear` | Delete all the stash entries. Note that those entries will then be subject to pruning, and may be impossible to recover |
+| `git stash pop` | Restore **most recent** stash and <u>**remove**</u> from stash list |
+| `git stash apply` | Restore **most recent** stash <u>**without removing**</u> from stash list |
 | `git stash drop <hash>` | Delete a single stash entry from the list of stash entries. |
+| `git stash clear` | Delete all the stash entries. Note that those entries will then be subject to pruning, and may be impossible to recover |
 </aside>
 
 <aside>
@@ -1521,6 +1551,32 @@ directory to match the `HEAD` commit. |
 - Its GitHub repo is run by a core team of student developers who do most of the development. Let’s say you are another student and want to help out, you see their list of pending issues on their GitHub repo and pick out a certain issue to fix: “Bug: course prerequisite tree does not work properly”
 - Because you have no write access to the repo, you don't have permission to edit their repo directly. So, you **fork** the repo (available since it is public for anyone to view). This creates your own personal copy of the entire NUSMods repo under your GitHub account, at that point in time, including all the remote branches currently listed.
 - You then have to **clone** this forked remote repo, so that you have a local copy to work on in your code editor.
-- You make your bug fix in your local forked copy of the repo, then submit a **pull request** to the original NUSMods repo, asking the core team to review and merge the changes from your repo copy into the actual NUSMods repo
+- You make your bug fix in your local forked copy of the repo, then submit a **pull request** to the <u>original NUSMods repo</u>, asking the core team to review and merge the changes from your repo copy into the actual NUSMods repo
 - Note: if you try git clone the original NUSMods repo directly, you would not be able to git pull or push from this local copy as you have no write access to the repo.
 </aside>
+
+### The 4 Areas of Git
+
+![git-4-areas.png](git-4-areas.png)
+
+### Transferring a git repo hosted on Github to analytics@gov Gitlab
+
+<aside>
+
+1. `git clone` the repo locally from github on your personal laptop
+2. Transfer the folder from your personal laptop to your GSIB/COMET device using secure thumb drive
+3. Copy the folder into your analytics@gov
+4. Run the following commands
+    
+    ```bash
+    cd /path/to/repo
+    git remote remove origin
+    git remote add origin https://analytics.<gov-host>/<group>/<repo>.git
+    git push -u origin main
+    ```
+    
+</aside>
+
+TODO:
+
+![image.png](image%2015.png)
