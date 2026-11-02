@@ -239,6 +239,14 @@ These should match the url of the repo on Gitlab (without the .git):
 
 <aside>
 
+#### The 4 Areas of Git
+
+![git-4-areas.png](git-4-areas.png)
+
+</aside>
+
+<aside>
+
 **Git commands (main)**
 
 ```bash
@@ -271,83 +279,6 @@ git commit --amend -m "corrected message"    # rewrite message for the last comm
     
     </aside>
     
-</aside>
-
-<aside>
-
-**Commit messages**
-
-Convention for writing commit messages (See [Conventional Commit Messages](https://www.conventionalcommits.org/en/v1.0.0/)): 
-
-```html
-<type>(<optional scope>): <description>
-empty line as separator
-<optional body>
-empty line as separator
-<optional footer>
-```
-
-- **Why follow a standard for commit messages?**
-    - A commit message is a note to your future self and your teammates explaining what changed and why. When you're debugging a problem weeks later or onboarding someone new to the project, a well-written commit history is invaluable.
-    - Following a standard structure makes the repo’s commit history easier to parse by the whole team, and makes it easier to understand what each commit changed without having to read all the actual code changes.
-- **For example, if you are committing the addition of a new model to a ML pipeline**
-    
-    <aside>
-    
-    **Minimally include the commit type and a short description**
-    
-    ```html
-    feat: add GBT Classifier to ML pipeline
-    ```
-    
-    **Most descriptive (summary + body + footer)**
-    
-    ```html
-    feat(pipeline): add GBT Classifier to ML pipeline
-    
-    Added Gradient Boosted Trees (GBT) Classifier as an additional model
-    in the training pipeline. The model is trained with default 
-    hyperparameters as a baseline and evaluated alongside existing models 
-    using the same train-test split and metrics.
-    
-    Closes #42
-    ```
-    
-    </aside>
-    
-
-**Industry-standard Commit Types**
-
-| **Type** | **Use for** |
-| --- | --- |
-| `feat` | Adding, modifying or removing a feature or analysis
-E.g. `feat(auth): add password reset function` |
-| `fix` | Bug fix
-E.g. `fix(api): correct NA handling in cleaning script` |
-| `refactor` | Restructure code without changing behaviour
-E.g. `refactor: rewrite function to be more concise` |
-| `style` | Code style changes without changing behaviour
-E.g. `style: run prettier` |
-| `chore` | Cleanup, renaming, formatting of folder structure. Maintenance tasks not affecting source or tests.
-E.g. `chore: rearrange files` |
-| `docs` | Changes to documentation or README
-E.g. `docs: update README` |
-
-**Data-oriented Commit Types**
-
-| **Type** | **Use for** |
-| --- | --- |
-| `data` | Adding, updating or removing data sources or raw files. 
-E.g. `data: add 2025 vouch ticketing data` |
-| `analysis` | Exploratory or ad-hoc analysis. 
-E.g. `analysis: explore invalid order rows with non-NA Refunded At, Refunded Amount, Cancelled At` |
-| `model` | Changes to model architecture, hyperparameters or evaluation. 
-E.g. `model: add GBT Classifier pipeline` |
-| `pipeline` | Changes to data pipeline or workflow steps. 
-E.g. `pipeline: add feature engineering step before model training` |
-
-We don’t have to stick to the above commit types strictly. We can come up with our own ones as a team. See [Section 8: Team Workflow Standards](https://app.notion.com/p/Git-Summary-Notes-3721331f71ad80baa433c93e25383627?pvs=21)
-
 </aside>
 
 <aside>
@@ -557,8 +488,6 @@ This can result in a **merge conflict** if two branches changed the same part of
 
 </aside>
 
-### rebase conflicts
-
 <aside>
 
 ### Resolving Conflicts
@@ -581,6 +510,14 @@ This can result in a **merge conflict** if two branches changed the same part of
     
 </aside>
 
+<aside>
+
+### Rebase Conflicts
+
+A rebase TODO
+
+</aside>
+
 ## 5. Branching
 
 <aside>
@@ -597,7 +534,7 @@ git branch <branch>           # create a new local branch named <branch>
 
 git branch -d <branch>        # delete a branch locally
 git branch -D <branch>        # FORCE delete a branch locally (even if not merged)
-git push origin -d <branch>   # delete a branch on the remote *dangerous*
+git push origin -d <branch>   # delete a branch on the remote (*dangerous*)
 ```
 
 ```bash
@@ -758,13 +695,50 @@ git cherry-pick <hash1> <hash2> <hash3> # You can apply many commits at a time
 
 </aside>
 
+<aside>
+
+**Git Stash**
+
+- Use `git stash` to temporarily set aside **uncommitted changes** without committing them.
+
+```bash
+git stash                  # stash your current uncommitted changes
+git switch <other-branch>
+
+# -------------------------------------------------- #
+# do your urgent work in another branch... ╭(•ᴗ•)╮
+#                                           _| |_
+# -------------------------------------------------- #
+
+git switch <your-branch>
+git stash pop              # restore most recent stash and remove from stash list
+```
+
+- Stashing is a way to temporarily set aside **uncommitted** changes without committing them. It's useful when you are in the middle of working in one branch but urgently need to attend to another branch.
+- By default, `git stash` captures **modified tracked files and staged changes**, but not untracked files (new files you haven't `git add`ed before) and git ignored files.
+
+| `git stash` | Saves your local modifications away and reverts the working 
+directory to match the `HEAD` commit.
+(Note: Untracked files like newly added files are not included) |
+| --- | --- |
+| `git stash -u` | Also include untracked files |
+| `git stash push -m "message"` | Also include a message to tell stashes apart |
+| `git stash list` | Shows all your stashes |
+| `git stash pop` | Restore **most recent** stash and <u>**remove**</u> from stash list |
+| `git stash apply` | Restore **most recent** stash <u>**without removing**</u> from stash list |
+| `git stash drop <hash>` | Delete a single stash entry from the list of stash entries. |
+| `git stash clear` | Delete all the stash entries. Note that those entries will then be subject to pruning, and may be impossible to recover |
+</aside>
+
 ## 6. Merge Requests and Code Review
 
-As we learnt from Sestion 5 on Branching, we do not commit our changes straight to `main` to prevent any bad changes from making it straight into production.
+<aside>
+
+As we learnt from Section 5 on Branching, we do not commit our changes straight to `main` to prevent any bad changes from making it straight into production.
 
 Instead, we work on feature branches, until we finish a feature or set of specific changes. Once we are happy with it, we will merge our feature branch into main to merge in our changes.
 
-- The workflow for doing this is as follows:
+- **The workflow for doing this is as follows:**
     
     <aside>
     
@@ -783,6 +757,7 @@ Instead, we work on feature branches, until we finish a feature or set of specif
         - This updates the main branch remotely, and other team members need to pull the main branch to get the changes locally.
     </aside>
     
+</aside>
 
 <aside>
 
@@ -839,18 +814,20 @@ git switch <branch-name>
 ```
 
 1. Run `git fetch` to get local knowledge on what remote branches are on GitLab
-    - You will see something like `remotes/origin/<branch-name>`
-2. Run `git switch <branch-name>` to get a local copy tracking the remote branch
+2. Run `git branch -r` to list the remote branches
+    - You will see something like `origin/<branch-name>` 
+    (origin is the alias for the remote address)
+3. Run `git switch <branch-name>` to get a local copy tracking the remote branch
     - For example, typing `git switch fix/sarimax`  (without the prefix `origin`
     - The output looks likes below
     
-    ```jsx
+    ```
     branch 'fix/sarimax-bug' set up to track 'origin/fix/sarimax-bug'.
     Switched to a new branch 'fix/sarimax-bug'
     ```
     
-3. Now that you have a local copy of the branch, run the code and make sure all the objectives are met
-4. Approve / reject the merge request and leave comments
+4. Now that you have a local copy of the branch, run the code and make sure all the objectives are met
+5. Approve / reject the merge request and leave comments
 
 Notes:
 
@@ -1022,11 +999,88 @@ i.e. each commit should do **one thing** and leave the codebase in a working sta
 
 </aside>
 
-### **Coding Practices**
+<aside>
+
+**Commit Conventions**
+
+See [Conventional Commit Messages](https://www.conventionalcommits.org/en/v1.0.0/))
+
+```html
+<type>(<optional scope>): <description>
+empty line as separator
+<optional body>
+empty line as separator
+<optional footer>
+```
+
+- **Why follow a standard for commit messages?**
+    - A commit message is a note to your future self and your teammates explaining what changed and why. When you're debugging a problem weeks later or onboarding someone new to the project, a well-written commit history is invaluable.
+    - Following a standard structure makes the repo’s commit history easier to parse by the whole team, and makes it easier to understand what each commit changed without having to read all the actual code changes.
+- **For example, if you are committing the addition of a new model to a ML pipeline**
+    
+    <aside>
+    
+    **Minimally include the commit type and a short description**
+    
+    ```html
+    feat: add GBT Classifier to ML pipeline
+    ```
+    
+    **Most descriptive (summary + body + footer)**
+    
+    ```html
+    feat(pipeline): add GBT Classifier to ML pipeline
+    
+    Added Gradient Boosted Trees (GBT) Classifier as an additional model
+    in the training pipeline. The model is trained with default 
+    hyperparameters as a baseline and evaluated alongside existing models 
+    using the same train-test split and metrics.
+    
+    Closes #42
+    ```
+    
+    </aside>
+    
+
+**Industry-standard Commit Types**
+
+| **Type** | **Use for** |
+| --- | --- |
+| `feat` | Adding, modifying or removing a feature or analysis
+E.g. `feat(auth): add password reset function` |
+| `fix` | Bug fix
+E.g. `fix(api): correct NA handling in cleaning script` |
+| `refactor` | Restructure code without changing behaviour
+E.g. `refactor: rewrite function to be more concise` |
+| `style` | Code style changes without changing behaviour
+E.g. `style: run prettier` |
+| `chore` | Cleanup, renaming, formatting of folder structure. Maintenance tasks not affecting source or tests.
+E.g. `chore: rearrange files` |
+| `docs` | Changes to documentation or README
+E.g. `docs: update README` |
+
+**Data-oriented Commit Types**
+
+| **Type** | **Use for** |
+| --- | --- |
+| `data` | Adding, updating or removing data sources or raw files. 
+E.g. `data: add 2025 vouch ticketing data` |
+| `analysis` | Exploratory or ad-hoc analysis. 
+E.g. `analysis: explore invalid order rows with non-NA Refunded At, Refunded Amount, Cancelled At` |
+| `model` | Changes to model architecture, hyperparameters or evaluation. 
+E.g. `model: add GBT Classifier pipeline` |
+| `pipeline` | Changes to data pipeline or workflow steps. 
+E.g. `pipeline: add feature engineering step before model training` |
+
+We don’t have to stick to the above commit types strictly. We can come up with our own ones as a team. See [Section 8: Team Workflow Standards](https://app.notion.com/p/Git-Summary-Notes-3721331f71ad80baa433c93e25383627?pvs=21)
+
+</aside>
+
+### Documentation
 
 <aside>
 
-**Comments**
+**Inline Comments**
 
 </aside>
 
@@ -1077,6 +1131,20 @@ i.e. each commit should do **one thing** and leave the codebase in a working sta
     This isn’t a docstring but it's a comment that just restates the same parameters readable from the method signature, without value adding
     
     ![image.png](image%2014.png)
+    
+</aside>
+
+<aside>
+
+**README and documentation**
+
+- Useful References
+    
+    <aside>
+    
+    - [GitHub's guide on READMEs](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes)
+    - [The Markdown Guide](https://www.markdownguide.org) (for Markdown syntax)
+    </aside>
     
 </aside>
 
@@ -1145,20 +1213,6 @@ i.e. each commit should do **one thing** and leave the codebase in a working sta
     └── **outputs/**
     ```
     
-    </aside>
-    
-</aside>
-
-<aside>
-
-**README and documentation**
-
-- Useful References
-    
-    <aside>
-    
-    - [GitHub's guide on READMEs](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes)
-    - [The Markdown Guide](https://www.markdownguide.org) (for Markdown syntax)
     </aside>
     
 </aside>
@@ -1379,11 +1433,7 @@ Similarly, every user separately creates and uses their own virtual environment.
 
 </aside>
 
-## 9. Gitlab Project Board
-
-kiv
-
-## 10. Common Scenarios and Troubleshooting
+## 9. Common Scenarios and Troubleshooting
 
 <aside>
 
@@ -1486,36 +1536,7 @@ kiv
 **You're mid-way through changes on a feature branch, then something urgent comes up and you need to switch to another branch to do something else. However, your changes on the current branch aren't ready to be committed yet**
 
 - Use `git stash` to temporarily set aside **uncommitted changes** without committing them.
-
-```bash
-git stash                  # stash your current uncommitted changes
-git switch <other-branch>
-
-# -------------------------------------------------- #
-# do your urgent work in another branch... ╭(•ᴗ•)╮
-#                                           _| |_
-# -------------------------------------------------- #
-
-git switch <your-branch>
-git stash pop              # restore most recent stash and remove from stash list
-```
-
-**Git Stash**
-
-- Stashing is a way to temporarily set aside **uncommitted** changes without committing them. It's useful when you are in the middle of working in one branch but urgently need to attend to another branch.
-- By default, `git stash` captures **modified tracked files and staged changes**, but not untracked files (new files you haven't `git add`ed before) and git ignored files.
-
-| `git stash` | Saves your local modifications away and reverts the working 
-directory to match the `HEAD` commit.
-(Note: Untracked files like newly added files are not included) |
-| --- | --- |
-| `git stash -u` | Also include untracked files |
-| `git stash push -m "message"` | Also include a message to tell stashes apart |
-| `git stash list` | Shows all your stashes |
-| `git stash pop` | Restore **most recent** stash and <u>**remove**</u> from stash list |
-| `git stash apply` | Restore **most recent** stash <u>**without removing**</u> from stash list |
-| `git stash drop <hash>` | Delete a single stash entry from the list of stash entries. |
-| `git stash clear` | Delete all the stash entries. Note that those entries will then be subject to pruning, and may be impossible to recover |
+- See [](https://app.notion.com/p/40c1331f71ad800ebc51ffc726697d0d?pvs=21)
 </aside>
 
 <aside>
@@ -1525,7 +1546,7 @@ directory to match the `HEAD` commit.
 - Commit and push to the same branch as usual. GitLab automatically picks up any new commits pushed to the source branch and adds them to the open MR.
 </aside>
 
-## 11. Other Gitlab / Github functions
+## 10. Other Gitlab / Github functions
 
 ### Forking a repository on Gitlab / Github
 
@@ -1555,10 +1576,6 @@ directory to match the `HEAD` commit.
 - Note: if you try git clone the original NUSMods repo directly, you would not be able to git pull or push from this local copy as you have no write access to the repo.
 </aside>
 
-### The 4 Areas of Git
-
-![git-4-areas.png](git-4-areas.png)
-
 ### Transferring a git repo hosted on Github to analytics@gov Gitlab
 
 <aside>
@@ -1577,6 +1594,6 @@ directory to match the `HEAD` commit.
     
 </aside>
 
-TODO:
+**Types of conflicts**
 
 ![image.png](image%2015.png)
